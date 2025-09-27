@@ -25,9 +25,9 @@ const handler = NextAuth({
         },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
+  // session: {
+  //   strategy: "jwt",
+  // },
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
@@ -52,10 +52,6 @@ const handler = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
 })
-
-// export const authOptions = {
-//   debug: true,
-// }
 
 
 export {handler as GET, handler as POST}

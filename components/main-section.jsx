@@ -42,6 +42,7 @@ export function MainSection() {
 
   // Create a function that triggers Google Sign In using NextAuth,
   // and then uses the accessToken to call an API route to fetch Gmail inbox.
+  
   const handleGoogleSignIn = async () => {
     try {
       const result = await signIn('google', { callbackUrl: '/' });
