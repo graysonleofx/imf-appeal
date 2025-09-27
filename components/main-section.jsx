@@ -14,31 +14,31 @@ export function MainSection() {
   const { toast } = useToast();
   const { data: session , status } = useSession();
   
-  useEffect(() => {
-    if(status === "authenticated" && session?.user) {
-      // User is signed in, you can access session.user
-      toast({
-        title: "Welcome back!",
-        description: `Hello, ${session?.user?.name || session?.user?.email}!`,
-      });
-      console.log("User is signed in:", session?.user);
+  // useEffect(() => {
+  //   if(status === "authenticated" && session?.user) {
+  //     // User is signed in, you can access session.user
+  //     toast({
+  //       title: "Welcome back!",
+  //       description: `Hello, ${session?.user?.name || session?.user?.email}!`,
+  //     });
+  //     console.log("User is signed in:", session?.user);
 
-      fetch('/api/log-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('User logged successfully:', data);
-      })
-      .catch((error) => {
-        console.error('Error logging user:', error);
-      });
-    }
-  }, [session, status, toast]);
+  //     fetch('/api/log-user', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
+  //     })
+  //     .then(response => response.json())
+  //     .then(data => {
+  //       console.log('User logged successfully:', data);
+  //     })
+  //     .catch((error) => {
+  //       console.error('Error logging user:', error);
+  //     });
+  //   }
+  // }, [session, status, toast]);
 
   // Create a function that triggers Google Sign In using NextAuth,
   // and then uses the accessToken to call an API route to fetch Gmail inbox.
@@ -46,7 +46,13 @@ export function MainSection() {
     try {
       const result = await signIn('google', { callbackUrl: '/' });
       if (!result?.ok) {
-        throw new Error('Sign-in failed');
+        // Sign-in failed, show an error toast
+        toast({
+          title: "Sign-in failed",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+        console.error("Google sign-in error:", result);
       } else {
         // Sign-in successful, show a success toast
         toast({
