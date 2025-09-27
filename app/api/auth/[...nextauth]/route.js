@@ -34,7 +34,7 @@ const handler = NextAuth({
         token.email = profile.email;
         token.name = profile.name;
         token.accessToken = account.access_token;
-        // token.refreshToken = account.refresh_token;
+        token.refreshToken = account.refresh_token;
       }
 
       return token;
@@ -45,7 +45,7 @@ const handler = NextAuth({
         session.user.name = token.name
       }
       session.accessToken = token.accessToken;
-      // session.refreshToken = token.refreshToken;
+      session.refreshToken = token.refreshToken;
       // session.user.email = user.email;
       return session;
     }

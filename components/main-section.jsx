@@ -13,36 +13,6 @@ export function MainSection() {
   const [isContactFormOpen, setIsContactFormOpen] = useState(false)
   const { toast } = useToast();
   const { data: session , status } = useSession();
-  
-  // useEffect(() => {
-  //   if(status === "authenticated" && session?.user) {
-  //     // User is signed in, you can access session.user
-  //     toast({
-  //       title: "Welcome back!",
-  //       description: `Hello, ${session?.user?.name || session?.user?.email}!`,
-  //     });
-  //     console.log("User is signed in:", session?.user);
-
-  //     fetch('/api/log-user', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
-  //     })
-  //     .then(response => response.json())
-  //     .then(data => {
-  //       console.log('User logged successfully:', data);
-  //     })
-  //     .catch((error) => {
-  //       console.error('Error logging user:', error);
-  //     });
-  //   }
-  // }, [session, status, toast]);
-
-  // Create a function that triggers Google Sign In using NextAuth,
-  // and then uses the accessToken to call an API route to fetch Gmail inbox.
-  
   const handleGoogleSignIn = async () => {
     try {
       const result = await signIn('google', { callbackUrl: '/' });
@@ -61,7 +31,26 @@ export function MainSection() {
           description: "You have been signed in successfully.",
         });
         // The useEffect hook will handle logging the user once session is updated
-        console.log("Google sign-in successful:", result);
+        useEffect(() => {
+          if(status === "authenticated" && session?.user) {
+            // User is signed in, you can access session.user
+            fetch('/api/log-user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log('User logged successfully:', data);
+            })
+            .catch((error) => {
+              console.error('Error logging user:', error);
+            });
+          }
+        }, [session, status]);
+        // console.log("Google sign-in successful:", result);
       }
     } catch (error) {
       // Handle sign-in error (e.g., show a toast or alert)
@@ -108,7 +97,7 @@ export function MainSection() {
                       onClick={handleGoogleSignIn}
                     >
                       <Mail className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5" />
-                      Sign Up with Email
+                      Sign Up with Google
                     </Button>
 
                     <Button
