@@ -1,7 +1,8 @@
-"use client"
-import { SessionProvider } from 'next-auth/react'
+"use client" 
+
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import {SessionProvider} from "next-auth/react"
 import './globals.css'
 
 export default function RootLayout({
@@ -14,7 +15,7 @@ export default function RootLayout({
         {children}
       </SessionProvider>
       </body>
-    </html>
+    </html> 
     
   )
 }

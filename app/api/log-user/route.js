@@ -1,8 +1,13 @@
-import NextResponse from "next/server";
+import {NextResponse} from "next/server";
 
 export async function POST(request) {
+  console.log("Received request to log user");
   try {
     const body = await request.json();
+    console.log("Request body:", body);
+    if (!body || !body.email) {
+      return NextResponse.json({ error: "Invalid request, email is required" }, { status: 400 });
+    }
     const { email, name } = body;
     console.log("Logging user:", { email, name });
     alert("Logging user:", { email, name });
@@ -14,6 +19,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, message: "User logged successfully", user: { email, name } });
   } catch (error) {
     console.error("Error logging user:", error);
-    return NextResponse.json({ error: "Failed to log user" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to log user" }, { status: 500 });
   }
 }

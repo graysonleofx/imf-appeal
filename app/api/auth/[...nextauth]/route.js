@@ -20,15 +20,27 @@ const handler = NextAuth({
             // ].join(''),
             scope: ["https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid email https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://mail.google.com/"].join(" "), 
             access_type: "offline",
-            prompt: "consent"
+            prompt: "consent",
+            response_type: "code"
           },
         },
     }),
   ],
-  // session: {
-  //   strategy: "jwt",
-  // },
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
+    async session({ session, token }) {
+      if (token) {  
+        session.user.id = token.sub;
+        session.user.email = token.email;
+        session.user.name = token.name;
+      }
+      session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
+      return session;
+    },
+
     async jwt({ token, account, profile }) {
       if (account && profile) {
         token.email = profile.email;
@@ -38,17 +50,8 @@ const handler = NextAuth({
       }
 
       return token;
-    },
-    async session({ session, token}) {
-      if(token){
-        session.user.email = token.email
-        session.user.name = token.name
-      }
-      session.accessToken = token.accessToken;
-      session.refreshToken = token.refreshToken;
-      // session.user.email = user.email;
-      return session;
     }
+    
   },
   secret: process.env.NEXTAUTH_SECRET,
 })

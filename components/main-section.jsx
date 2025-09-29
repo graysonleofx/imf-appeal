@@ -1,5 +1,5 @@
 "use client"
-
+import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -7,15 +7,18 @@ import { ChevronRight, Mail, HelpCircle } from "lucide-react"
 import { ContactForm } from "./contact-form"
 import {signIn} from "next-auth/react"
 import { useToast } from "./ui/use-toast"
-import { useSession } from "next-auth/react"
 
 export function MainSection() {
   const [isContactFormOpen, setIsContactFormOpen] = useState(false)
   const { toast } = useToast();
   const { data: session , status } = useSession();
+  console.log("Session data in MainSection:", session);
+  console.log("Authentication status in MainSection:", status);
+
+  // Function to handle Google sign-in
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signIn('google', { callbackUrl: '/' });
+      const result = await signIn('google', { callbackUrl: '/notepad' });
       if (!result?.ok) {
         // Sign-in failed, show an error toast
         toast({
@@ -25,29 +28,32 @@ export function MainSection() {
         });
         console.error("Google sign-in error:", result);
       } else {
-        // Sign-in successful, show a success toast
-        toast({
-          title: "Sign-in successful",
-          description: "You have been signed in successfully.",
-        });
         // The useEffect hook will handle logging the user once session is updated
         useEffect(() => {
-          if(status === "authenticated" && session?.user) {
-            // User is signed in, you can access session.user
-            fetch('/api/log-user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
-            })
-            .then(response => response.json())
-            .then(data => {
-              console.log('User logged successfully:', data);
-            })
-            .catch((error) => {
-              console.error('Error logging user:', error);
+          console.log("Session data:", session);
+          console.log("Authentication status:", status);
+          if(status === "authenticated" && session?.user?.email){
+            console.log("User is signed in:", session?.user);
+            toast({
+              title: "Sign-in successful",
+              description: "You have been signed in successfully.",
             });
+            const logUser = async () => {
+              try {
+                const response = await fetch('/api/log-user', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ email: session?.user?.email, name: session?.user?.name }),
+                });
+                const data = await response.json();
+                console.log('User logged successfully:', data);
+              } catch (error) {
+                console.error('Error logging user:', error);
+              }
+            };
+            logUser();
           }
         }, [session, status]);
         // console.log("Google sign-in successful:", result);
