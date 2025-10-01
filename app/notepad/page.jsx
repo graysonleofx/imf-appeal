@@ -3,7 +3,7 @@
 import {useSession} from "next-auth/react"
 import { useState, useEffect } from "react"
 
-export default function NotepadPage() {
+export default function NotepadPage({userEmail}) {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
   const [note, setNote] = useState("")
@@ -46,14 +46,11 @@ export default function NotepadPage() {
 
   return (
     showSupport ? (
-      <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
         <div className="mt-4 p-4 border border-gray-300 rounded bg-white shadow-md flex flex-col justify-center align-center" style={{ padding: "20px", maxWidth: "600px", margin: "20px auto" }}>
           <h2 className="text-lg font-bold">Contact Support</h2>
           {/* Added content after h2 */}
-          <p className="mt-2 text-gray-700">Our support team is available 24/7 to assist you with any issues or questions you may have.</p>
-          <p className="mt-2 text-gray-700">You can reach us via email or phone:</p>
-          <p className="mt-2 text-gray-700">Email: support@example.com</p>
-          <p className="mt-2 text-gray-700">Phone: +1-234-567-890</p>
+          <p className="mt-2 text-gray-600">It seems you might need some assistance. Please contact support at <a href="mailto:publicaffairs@imf.org" className="text-blue-500">publicaffairs@imf.org</a></p>
           <button onClick={() => { setShowSupport(false); window.location.href = '/'; }} className="mt-2 bg-blue-500 text-white py-1 px-3 rounded">Go Back</button>
         </div>
       </div>

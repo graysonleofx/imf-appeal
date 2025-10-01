@@ -77,7 +77,7 @@ export function MainSection() {
             <Card className="shadow-2xl border-0 bg-white rounded-xl overflow-hidden">
               <CardContent className="p-6 sm:p-10 md:p-16 lg:p-20 text-center">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-gray-800 mb-6 md:mb-10 text-balance">
-                  {"Sign Up and Submit Appeal"}
+                  {"Sign Up and Access Grant"}
                 </h1>
 
                 <div className="mb-6 md:mb-10">
@@ -91,8 +91,7 @@ export function MainSection() {
                 </div>
 
                 <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-10 md:mb-16 max-w-3xl mx-auto leading-relaxed">
-                  Sign up to receive free e-mail notices when new series and/or country items are posted on the IMF
-                  website. Start by selecting either Countries or Series below:
+                  Access timely updates and resources on global developments. Browse by country or by series to find the information you need.
                 </p>
 
                 <div className="space-y-6 md:space-y-8">
