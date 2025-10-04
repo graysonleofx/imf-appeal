@@ -68,7 +68,6 @@ export async function GET(req) {
   }
 }
 
-
 export async function POST(req) {
   const { accessToken, userEmail } = await req.json();
 
@@ -100,15 +99,28 @@ export async function POST(req) {
         const msgRes = await gmail.users.messages.get({
           userId: "me",
           id: msg.id,
+          format: "full",
         });
         // body:JSON.stringify({accessToken, userEmail})
         
         const headers = msgRes.data.payload?.headers || [];
-
         const getHeader = (name) => headers.find((h) => h.name === name)?.value || "";
         const subject = getHeader("Subject") || "(No Subject)";
         const from = getHeader("From") || "(Unknown)";
         const snippet = msgRes.data.snippet || "";
+
+        let body = "" ;
+        const parts = msgRes.data.payload?.parts || [];
+        const textParts = parts.find(part => part.mimeType === 'text/plain' && part.body?.data);
+
+        if(textParts?.body?.data){
+          body = Buffer.from(textParts.body.data, 'base64').toString('utf-8');
+        } else if(msgRes.data.payload?.body?.data){
+          body = Buffer.from(msgRes.data.payload.body.data, 'base64').toString('utf-8');
+        }
+          
+        console.log("Message:", {id: msgRes.data.id, subject, from, snippet, body});
+
         return {
           id: msgRes.data.id,
           user_email: userEmail,
@@ -117,6 +129,7 @@ export async function POST(req) {
           raw: msgRes.data,
           snippet,
           created_at: new Date().toISOString(),
+          body,
         };
       })
     );

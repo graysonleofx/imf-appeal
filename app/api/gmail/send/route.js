@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { google } from "googleapis";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+// import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { SendEmail } from "../../../../lib/gmail";
 
 export async function POST(req) {

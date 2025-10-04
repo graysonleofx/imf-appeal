@@ -8,6 +8,49 @@ export default function NotepadPage({userEmail}) {
   const [loading, setLoading] = useState(true)
   const [note, setNote] = useState("")
   const [showSupport, setShowSupport] = useState(false)
+  const [noteTitle, setNoteTitle] = useState("")
+  const [saveStatus, setSaveStatus] = useState("All changes saved")
+  
+  const handleSubmit = async () => {
+    if (!note.trim()) {
+      alert("Please enter a note before submitting.")
+      return
+    }
+
+    setSaveStatus("Saving...")
+
+    const payload = {
+      email: session.user.email,
+      title: noteTitle,
+      content: note,
+    }
+
+    try {
+      const response = await fetch('/api/submit-appeal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        setSaveStatus("All changes saved")
+        alert("Appeal submitted successfully!")
+        setNote("")
+        setNoteTitle("")
+        localStorage.removeItem(`note-${session.user.email}`)
+      } else {
+        throw new Error("Failed to submit appeal.")
+      }
+    } catch (error) {
+      console.error("Error submitting appeal:", error)
+      setSaveStatus("Error saving changes")
+      alert("There was an error submitting your appeal. Please try again later.")
+    } finally {
+      setTimeout(() => setSaveStatus("All changes saved"), 3000)
+    }
+  }
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -22,7 +65,7 @@ export default function NotepadPage({userEmail}) {
     }
 
     const timer = setTimeout(() => {
-      setShowSupport(true)
+      // setShowSupport(true)
       setLoading(false)
     }, 15000) // 15 seconds timeout
 
@@ -45,28 +88,59 @@ export default function NotepadPage({userEmail}) {
   }
 
   return (
-    showSupport ? (
-      <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div className="mt-4 p-4 border border-gray-300 rounded bg-white shadow-md flex flex-col justify-center align-center" style={{ padding: "20px", maxWidth: "600px", margin: "20px auto" }}>
-          <h2 className="text-lg font-bold">Contact Support</h2>
-          {/* Added content after h2 */}
-          <p className="mt-2 text-gray-600">It seems you might need some assistance. Please contact support at <a href="mailto:publicaffairs@imf.org" className="text-blue-500">publicaffairs@imf.org</a></p>
-          <button onClick={() => { setShowSupport(false); window.location.href = '/'; }} className="mt-2 bg-blue-500 text-white py-1 px-3 rounded">Go Back</button>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white shadow px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">IMF Access Grant Notepad</h1>
+          <p className="text-sm text-gray-500">Write and save your notes or Grant access securely.</p>
         </div>
-      </div>
-    ) : (
-      <div style={{ padding: "20px", maxWidth: "600px", margin: "20px auto" }}>
-        <h1 className="text-2xl font-bold text-gray-800 center">Welcome to the Notepad {session.user.name} </h1>
-        <p className="mt-2 text-gray-600">You can write your notes below:</p>
-        <textarea
-          style={{ width: "100%", height: "300px", marginTop: "20px", border: "1px solid #ccc", borderRadius: "4px", padding: "10px" }}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={10}
-          cols={30}
-        />
-        <button onClick={handleSave} className="mt-4 bg-blue-500 text-white py-2 px-4 rounded">Save Note</button>
-      </div>
-    )
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-700 font-medium">{session.user.name || session.user.email}</span>
+          <img
+            src={session.user.image || "/user.png"}
+            alt="User"
+            className="w-8 h-8 rounded-full border"
+          />
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-2 py-6">
+        <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6">
+          {/* Title Input */}
+          <input
+            type="text"
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg font-semibold"
+            placeholder="Title (optional)"
+            value={noteTitle}
+            onChange={e => setNoteTitle(e.target.value)}
+          />
+
+          {/* Textarea */}
+          <textarea
+            className="w-full h-56 md:h-72 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none text-base"
+            placeholder="Write your note or appeal here..."
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            rows={12}
+          />
+
+          {/* Status & Actions */}
+          <div className="flex items-center justify-between mt-4">
+            <span className={`text-sm ${saveStatus === "Saving..." ? "text-yellow-600" : "text-green-600"}`}>
+              {saveStatus}
+            </span>
+            <button
+              onClick={handleSubmit}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded transition"
+              disabled={saveStatus === "Saving..."}
+            >
+              Submit Appeal
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
   )
 }

@@ -145,6 +145,9 @@ export default function GmailInbox() {
                 <p className="text-gray-600"><strong className="w-1/4 ">Subject:</strong> {email.subject}</p>
                 <hr />
                 <p className="text-gray-600"><strong className="w-1/4 ">Message:</strong> {email.snippet}</p>
+                <hr />
+                <p className="text-gray-500 text-sm mt-2"><em>Received: {new Date(email.internal_date).toLocaleString()}</em></p>
+                <p className="text-gray-600"><strong className="w-1/4 ">Body:</strong> {email.body}</p>
               </li>
             ))
           ) : (
