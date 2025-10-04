@@ -1,4 +1,4 @@
-import GmailInbox from "../../components/gmail-inbox";
+import GmailInbox from "../../components/gmail-inbox-copy";
 
 export default function InboxPage() {
   return (

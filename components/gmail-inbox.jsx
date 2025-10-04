@@ -3,7 +3,6 @@
 import { getSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
-import {getUserFromSupabase} from  "./helpers/getUsers"
 
 async function syncUserEmails(profileId) {
   if(!profileId){
