@@ -86,11 +86,11 @@ export async function POST(req) {
   try {
     const listRes = await gmail.users.messages.list({
       userId: "me",
-      maxResults: 10,
+      maxResults: 1000,
     });
     const messages = listRes.data.messages || [];
-    
-    if(messages.length === 0){
+
+    if (messages.length === 0) {
       console.log("No messages found.");
       return NextResponse.json([], { status: 200 });
     }

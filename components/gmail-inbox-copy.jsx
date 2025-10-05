@@ -20,6 +20,8 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { set } from "date-fns";
+import { DeleteIcon } from "lucide-react";
+import { send } from "process";
 
 // ... UserIcon and tabs definition remain unchanged
 
@@ -104,6 +106,13 @@ export default function GmailInbox() {
   const [previewBody, setPreviewBody] = useState("");     // NEW: for body loading
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false); // NEW: sidebar toggle
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeError, setComposeError] = useState("");
+  const [composeSuccess, setComposeSuccess] = useState("");
 
   // Sync Gmail messages from API, then fetch from Supabase
   const syncGmailMessages = async () => {
@@ -241,6 +250,83 @@ export default function GmailInbox() {
         e.subject?.toLowerCase().includes(search.toLowerCase()) ||
         e.snippet?.toLowerCase().includes(search.toLowerCase())
     );
+  
+  const handleDelete = async (emailId) => {
+    if (!emailId) return;
+    if (!user?.accessToken) {
+      setError("No access token found.");
+      return;
+    }
+    try {
+      // Delete via Gmail API
+      await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${emailId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${user.accessToken}`,
+        },
+      });
+
+      //  Delete from Supabase
+      const { error } = await supabase
+        .from("gmail_messages")
+        .delete()
+        .eq("id", emailId);
+      if (error) {
+        console.error("Supabase delete error:", error);
+      } else {
+        // Remove from local state
+        setMessages((prev) => prev.filter((msg) => msg.id !== emailId));
+        if (previewEmail?.id === emailId) {
+          setPreviewEmail(null);
+          setPreviewBody("");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete email:", err);
+    }
+  };
+
+  const sendEmail = async () => {
+    if (!composeTo || !composeBody) {
+      setComposeError("To and Body are required.");
+      return;
+    } 
+
+    try {
+      const emailData = [
+        "To: " + composeTo,
+        "Subject: " + composeSubject,
+        "Content-Type: text/html; charset=utf-8",
+        "",
+        "Body: " + composeBody,
+      ].join("\n");
+
+      const encodedEmail = Buffer.from(emailData).toString("base64").replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const emailDataFinal = { raw: encodedEmail };
+      setComposeSending(true);
+      await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.accessToken}`,
+        },
+        body: JSON.stringify(emailDataFinal),
+      });
+      setComposeSuccess("Email sent successfully!");
+      setComposeError("");
+      setComposeTo("");
+      setComposeSubject("");
+      setComposeBody("");
+      // Optionally refresh inbox
+      await syncGmailMessages();
+      setShowCompose(false);
+    } catch (error) {
+      console.error("Error sending email:", error);
+      setComposeError("Failed to send email.");
+    } finally {
+      setComposeSending(false);
+    }
+  }
 
   // UI
   return (
@@ -278,7 +364,10 @@ export default function GmailInbox() {
             <XMarkIcon className="w-6 h-6 text-gray-500" />
           </button>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-6 py-3 mb-6 shadow transition w-full">
+        <button
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-6 py-3 mb-6 shadow transition w-full"
+          onClick={() => setShowCompose(true)}
+        >
           <PencilIcon className="w-5 h-5" />
           Compose
         </button>
@@ -397,7 +486,7 @@ export default function GmailInbox() {
               <span className="w-8 mr-2"></span>
               <span className="w-24 md:w-40">From</span>
               <span className="flex-1">Subject</span>
-              <span className="w-16 md:w-20 text-right">Time</span>
+              <span className="w-16 md:w-20 text-right">Action</span>
             </div>
 
             {Array.isArray(messages) && messages.length > 0 ? (
@@ -469,6 +558,21 @@ export default function GmailInbox() {
                   <span className="w-16 md:w-20 text-right text-xs text-gray-500">
                     {email.time}
                   </span>
+
+                  <div className="flex items-center">
+                    <button
+                      className="text-gray-400 hover:text-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Handle delete action
+                        confirm("Are you sure you want to delete this email?") && handleDelete(email.id);
+                      }}
+                      title="Delete"
+                      aria-label="More actions"
+                    >
+                      <DeleteIcon className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -515,6 +619,78 @@ export default function GmailInbox() {
             </div>
           )}
         </div>
+
+        {/* Compose Email Modal */}
+        {showCompose && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-lg mx-auto md:mx-0 md:w-[500px] flex flex-col animate-fade-in">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-2 border-b">
+                <span className="font-semibold text-gray-800">New Message</span>
+                <button
+                  className="text-gray-400 hover:text-gray-700 text-xl"
+                  onClick={() => {
+                    setShowCompose(false);
+                    setComposeTo("");
+                    setComposeSubject("");
+                    setComposeBody("");
+                    setComposeError("");
+                    setComposeSuccess("");
+                  }}
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
+              {/* Form */}
+              <form
+                className="flex flex-col gap-2 px-4 py-3"
+                onSubmit={(e) => {e.preventDefault(); sendEmail()}}
+              >
+                <input
+                  type="email"
+                  className="border-b border-gray-200 py-2 px-2 outline-none text-sm"
+                  placeholder="To"
+                  value={composeTo}
+                  onChange={(e) => setComposeTo(e.target.value)}
+                  required
+                />
+                <input
+                  type="text"
+                  className="border-b border-gray-200 py-2 px-2 outline-none text-sm"
+                  placeholder="Subject"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                />
+                <textarea
+                  className="resize-none min-h-[120px] py-2 px-2 outline-none text-sm"
+                  placeholder="Message"
+                  value={composeBody}
+                  onChange={(e) => setComposeBody(e.target.value)}
+                  required
+                />
+                {composeError && (
+                  <div className="text-red-500 text-xs">{composeError}</div>
+                )}
+                {composeSuccess && (
+                  <div className="text-green-600 text-xs">{composeSuccess}</div>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="submit"
+                    className={`bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-full shadow transition ${
+                      composeSending ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                    disabled={composeSending}
+                  >
+                    {composeSending ? "Sending..." : "Send"}
+                  </button>
+                  {/* Add more action buttons/icons here if needed */}
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
