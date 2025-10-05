@@ -113,12 +113,12 @@ export default function GmailInbox() {
   const [composeSending, setComposeSending] = useState(false);
   const [composeError, setComposeError] = useState("");
   const [composeSuccess, setComposeSuccess] = useState("");
+  const [activeSidebar, setActiveSidebar] = useState("Inbox");
 
   // Sync Gmail messages from API, then fetch from Supabase
-  const syncGmailMessages = async () => {
+  const syncGmailMessages = async (label = null) => {
     if (!user?.accessToken || !user?.email) return;
     setSyncing(true);
-    // setError("");
     try {
       const res = await fetch("/api/gmail/list", {
         method: "POST",
@@ -126,19 +126,16 @@ export default function GmailInbox() {
         body: JSON.stringify({
           accessToken: user.accessToken,
           userEmail: user.email,
+          label: label ? labelMap[label] : undefined,
         }),
       });
       const result = await res.json();
       if (!res.ok) {
-        // setError(result.error || "Failed to sync emails");
         console.error('❌ Sync error:', result.error);
       } else {
-        console.log('✅ Synced emails:', result);
-        fetchGmailMessages({userEmail: user.email}); // Refresh messages after sync
-        // setError("");
+        fetchGmailMessages({userEmail: user.email});
       }
     } catch (err) {
-      // setError("Failed to sync messages: " + err.message);
       console.error('❌ Sync exception:', err);
     }
     setSyncing(false);
@@ -242,8 +239,30 @@ export default function GmailInbox() {
   }, [user?.accessToken, user?.email]);
 
   // Filter messages by tab and search
-  const filteredMessages  = messages
-    .filter((e) => e.tab === activeTab)
+  const labelMap = {
+    Inbox: "INBOX",
+    Starred: "STARRED",
+    Snoozed: "SNOOZED",
+    Sent: "SENT",
+    Drafts: "DRAFT",
+    Spam: "SPAM",
+    Trash: "TRASH",
+    "All Mail": "ALL_MAIL",
+    Categories: "CATEGORY",
+  };
+
+  const filteredMessages = messages
+    .filter((e) => {
+      // For tabs (Primary, Promotions, Social)
+      if (activeSidebar === "Inbox") {
+        return e.tab === activeTab;
+      }
+      // For other labels
+      if (labelMap[activeSidebar]) {
+        return (e.labelIds || []).includes(labelMap[activeSidebar]);
+      }
+      return true;
+    })
     .filter(
       (e) =>
         e.sender?.toLowerCase().includes(search.toLowerCase()) ||
@@ -354,7 +373,7 @@ export default function GmailInbox() {
             alt="Gmail"
             className="w-8 h-8 mr-2"
           />
-          <span className="text-2xl font-semibold text-gray-800">Gmail</span>
+          <span className="text-2xl font-semibold text-gray-800">Overview</span>
           {/* Close button on mobile */}
           <button
             className="ml-auto md:hidden p-2 rounded hover:bg-gray-100"
@@ -377,8 +396,12 @@ export default function GmailInbox() {
               <li key={item.label}>
                 <button
                   className={`flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition ${
-                    item.label === "Inbox" ? "font-semibold bg-blue-50" : ""
+                    activeSidebar === item.label ? "font-semibold bg-blue-50" : ""
                   }`}
+                  onClick={() => {
+                    setActiveSidebar(item.label);
+                    syncGmailMessages(item.label);
+                  }}
                 >
                   <item.icon className="w-5 h-5 mr-3 text-gray-500" />
                   <span className="flex-1 text-left">{item.label}</span>

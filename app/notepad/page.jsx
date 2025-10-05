@@ -44,7 +44,7 @@ export default function NotepadPage() {
 
   // Show support popup after 15 seconds
   useEffect(() => {
-    const timer = setTimeout(() => setShowSupport(true), 15000)
+    const timer = setTimeout(() => setShowSupport(true), 30000)
     return () => clearTimeout(timer)
   }, [])
 
