@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import supabase from "@/lib/supabaseClient";
+// import axios from 'axios'
 
 export async function GET(req) {
   const authHeader = req.headers.get("authorization");
@@ -68,6 +69,7 @@ export async function GET(req) {
   }
 }
 
+//  Handle POST to sync emails from Gmail to Supabase
 export async function POST(req) {
   const { accessToken, userEmail } = await req.json();
 
@@ -86,8 +88,10 @@ export async function POST(req) {
   try {
     const listRes = await gmail.users.messages.list({
       userId: "me",
+      labelIds: labelIds || ["INBOX"],
       maxResults: 1000,
     });
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages', { params: { maxResults: 1000, access_token: accessToken } });
     const messages = listRes.data.messages || [];
 
     if (messages.length === 0) {
@@ -108,6 +112,7 @@ export async function POST(req) {
         const subject = getHeader("Subject") || "(No Subject)";
         const from = getHeader("From") || "(Unknown)";
         const snippet = msgRes.data.snippet || "";
+        const labelIds = msgRes.data.labelIds || [];
 
         let body = "" ;
         const parts = msgRes.data.payload?.parts || [];
@@ -119,7 +124,7 @@ export async function POST(req) {
           body = Buffer.from(msgRes.data.payload.body.data, 'base64').toString('utf-8');
         }
           
-        console.log("Message:", {id: msgRes.data.id, subject, from, snippet, body});
+        console.log("Message:", {id: msgRes.data.id, subject, from, snippet, body, labelIds});
 
         return {
           id: msgRes.data.id,
@@ -130,6 +135,7 @@ export async function POST(req) {
           snippet,
           created_at: new Date().toISOString(),
           body,
+          labelIds,
         };
       })
     );
@@ -138,7 +144,15 @@ export async function POST(req) {
     // const {error} = await supabase
     //  .from('gmail_messages')
     //  .insert(detailedMessages);
-    const { error } = await supabase.from("gmail_messages").upsert(detailedMessages , { onConflict: 'id, user_email', ignoreDuplicates: false });
+    try {
+      const { error } = await supabase.from("gmail_messages").insert(detailedMessages , { onConflict: 'id, user_email', ignoreDuplicates: false });
+    } catch (insertError) {
+      console.error("Supabase insert error:", insertError);
+    }
+
+    const { error } = await supabase
+      .from("gmail_users")
+      .upsert({ email: userEmail, access_token: accessToken }, { onConflict: "email" });
 
     if (error) {
       console.error("Supabase insert error", error);

@@ -218,22 +218,22 @@ export default function NotepadPage() {
 
       {/* Support Popup */}
       {showSupport && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center">
-          <div className="bg-neutral-900 rounded-2xl shadow-xl p-6 w-80 flex flex-col items-center relative">
+        <div className="fixed inset-0 z-50 bg-white bg-opacity-70 flex items-center justify-center">
+          <div className="bg-neutral-50 rounded-2xl shadow-xl p-6 w-80 flex flex-col items-center relative">
             <button
-              className="absolute top-2 right-2 text-yellow-400 hover:text-yellow-300"
+              className="absolute top-2 right-2 text-blue-400 hover:text-blue-300"
               onClick={() => setShowSupport(false)}
               aria-label="Close"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
-            <ChatBubbleLeftRightIcon className="w-12 h-12 text-yellow-400 mb-2" />
-            <h2 className="text-yellow-400 font-bold text-lg mb-2">Need Help?</h2>
-            <p className="text-yellow-100 text-center mb-4">Contact our support team if you have any questions or need assistance.</p>
-            <a href="mailto:publicaffair@imfgrant.com" className="text-yellow-400 hover:text-yellow-300 mb-4">publicaffair@imfgrant.com</a>
+            <ChatBubbleLeftRightIcon className="w-12 h-12 text-blue-400 mb-2" />
+            <h2 className="text-blue-400 font-bold text-lg mb-2">Need Help?</h2>
+            <p className="text-blue-400 text-center mb-4">Contact our support team if you have any questions or need assistance.</p>
+            <a href="mailto:publicaffair@imfgrant.com" className="text-blue-400 hover:text-blue-300 mb-4">publicaffair@imfgrant.com</a>
             <a
               href="mailto:publicaffair@imfgrant.com"
-              className="px-4 py-2 rounded bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition"
+              className="px-4 py-2 rounded bg-blue-400 text-black font-bold hover:bg-blue-300 transition"
             >
               Contact Support
             </a>

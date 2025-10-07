@@ -27,8 +27,8 @@ import { send } from "process";
 
 const sidebarItems = [
   { label: "Inbox", icon: InboxIcon },
-  { label: "Starred", icon: StarIcon },
-  { label: "Snoozed", icon: ClockIcon },
+  // { label: "Starred", icon: StarIcon },
+  // { label: "Snoozed", icon: ClockIcon },
   { label: "Sent", icon: PaperAirplaneIcon },
   { label: "Drafts", icon: PencilIcon },
   { label: "Spam", icon: ExclamationCircleIcon },
@@ -75,7 +75,8 @@ const syncUserEmails = async (profileId) => {
     .maybeSingle();
 
   if (error) {
-    setError("Supabase error: " + error.message);
+    // setError("Supabase error: " + error.message);
+    console.log('supabase error')
     return null;
   }
   if (!user) {
@@ -84,7 +85,7 @@ const syncUserEmails = async (profileId) => {
     return null;
   }
   setUser(user);
-  setError("");
+  // setError("");
   return {
     email: user.email,
     accessToken: user.accessToken,
@@ -92,7 +93,6 @@ const syncUserEmails = async (profileId) => {
 };
 
 export default function GmailInbox() {
-  const [activeTab, setActiveTab] = useState("Primary");
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -114,10 +114,11 @@ export default function GmailInbox() {
   const [composeError, setComposeError] = useState("");
   const [composeSuccess, setComposeSuccess] = useState("");
   const [activeSidebar, setActiveSidebar] = useState("Inbox");
+  const [activeTab, setActiveTab] = useState("Inbox");
 
   // Sync Gmail messages from API, then fetch from Supabase
-  const syncGmailMessages = async (label = null) => {
-    if (!user?.accessToken || !user?.email) return;
+  const syncGmailMessages = async (labelIds = null) => {
+    if (!user.accessToken || !user.email) return;
     setSyncing(true);
     try {
       const res = await fetch("/api/gmail/list", {
@@ -126,13 +127,14 @@ export default function GmailInbox() {
         body: JSON.stringify({
           accessToken: user.accessToken,
           userEmail: user.email,
-          label: label ? labelMap[label] : undefined,
+          labelIds:  labelIds ? [labelIds] : undefined,
         }),
       });
       const result = await res.json();
       if (!res.ok) {
         console.error('❌ Sync error:', result.error);
       } else {
+        console.log('✅ Sync result:', result);
         fetchGmailMessages({userEmail: user.email});
       }
     } catch (err) {
@@ -152,7 +154,7 @@ export default function GmailInbox() {
         .select("*")
         .eq("user_email", userEmail)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         setError("Supabase fetch error: " + error.message);
@@ -210,9 +212,9 @@ export default function GmailInbox() {
       const userEmail = sess?.user?.email
       const userAccessToken = sess?.accessToken
 
-      console.log('🔑 Session ID:', userId);
-      console.log('📧 User Email:', userEmail);
-      console.log('🔑 User Access Token:', userAccessToken);
+      // console.log('🔑 Session ID:', userId);
+      // console.log('📧 User Email:', userEmail);
+      // console.log('🔑 User Access Token:', userAccessToken);
 
       setUser({id: userId, email: userEmail, accessToken: userAccessToken});
 
@@ -229,7 +231,10 @@ export default function GmailInbox() {
   }, []);
 
   useEffect(() => {
-    console.log('👤 User state changed:', user);
+    // console.log('👤 User state changed:', user);
+    if (user?.email) {
+      fetchGmailMessages({ userEmail: user.email });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -251,25 +256,48 @@ export default function GmailInbox() {
     Categories: "CATEGORY",
   };
 
-  const filteredMessages = messages
-    .filter((e) => {
-      // For tabs (Primary, Promotions, Social)
-      if (activeSidebar === "Inbox") {
-        return e.tab === activeTab;
-      }
-      // For other labels
-      if (labelMap[activeSidebar]) {
-        return (e.labelIds || []).includes(labelMap[activeSidebar]);
-      }
-      return true;
-    })
-    .filter(
-      (e) =>
-        e.sender?.toLowerCase().includes(search.toLowerCase()) ||
-        e.subject?.toLowerCase().includes(search.toLowerCase()) ||
-        e.snippet?.toLowerCase().includes(search.toLowerCase())
-    );
-  
+  const filteredEmails = messages.filter(e => Array.isArray(e.labelIds) && e.labelIds.length > 0);
+
+  // const filteredMessages = messages.filter((e) => {
+  //   // Filter by sidebar selection
+  //   console.log('Active Sidebar:', activeSidebar, 'Message Labels:', e.labelIds);
+
+  //   // If "Inbox" is selected, show only INBOX tab messages
+  //   // If other label is selected, filter by that label ID
+  //   if (activeSidebar === "Inbox") {
+  //     return e?.labelIds?.includes("INBOX");
+  //   }
+  //   if (labelMap[activeSidebar]) {
+  //     return Array.isArray(e?.labelIds) && e?.labelIds?.includes(labelMap[activeSidebar]);
+  //   }
+
+  //   // For tabs (Primary, Promotions, Social)
+  //   // if (activeSidebar === "Inbox") {
+  //   //   return e.tab === activeTab;
+  //   // }
+  //   // // For other labels
+  //   // if (labelMap[activeSidebar]) {
+  //   //   return (e.labelIds || []).includes(labelMap[activeSidebar]);
+  //   //   // return e.label === labelMap[activeSidebar];
+  //   // }
+  //   return true;
+  // }).filter(
+  //   (e) =>
+  //   e.from?.toLowerCase().includes(search.toLowerCase()) ||
+  //   e.subject?.toLowerCase().includes(search.toLowerCase()) ||
+  //   e.snippet?.toLowerCase().includes(search.toLowerCase())
+  // );
+
+  const filteredMessages = messages.filter(
+  (msg) =>
+    Array.isArray(msg.labelIds) &&
+    msg.labelIds.includes(labelMap[activeSidebar])
+  ).filter((msg) =>
+    msg.from?.toLowerCase().includes(search.toLowerCase()) ||
+    msg.subject?.toLowerCase().includes(search.toLowerCase()) ||
+    msg.snippet?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const handleDelete = async (emailId) => {
     if (!emailId) return;
     if (!user?.accessToken) {
@@ -286,9 +314,10 @@ export default function GmailInbox() {
       });
 
       //  Delete from Supabase
-      const { error } = await supabase
+      const {  error } = await supabase
         .from("gmail_messages")
-        .delete()
+        // .delete()
+        .update({ labelIds: ["TRASH"] }) // Soft delete by moving to TRASH
         .eq("id", emailId);
       if (error) {
         console.error("Supabase delete error:", error);
@@ -310,6 +339,10 @@ export default function GmailInbox() {
       setComposeError("To and Body are required.");
       return;
     } 
+    if (!user?.accessToken) {
+      setComposeError("No access token found.");
+      return;
+    }
 
     try {
       const emailData = [
@@ -335,10 +368,18 @@ export default function GmailInbox() {
       setComposeError("");
       setComposeTo("");
       setComposeSubject("");
-      setComposeBody("");
-      // Optionally refresh inbox
-      await syncGmailMessages();
+      setComposeBody("")
+      const newMessage = {
+        id: Date.now().toString(), // Temporary ID  for UI purposes
+        to: composeTo,
+        subject: composeSubject,
+        body: composeBody,
+        from: user.email,
+        labelIds: ["SENT"],
+      };
+      setMessages((prev) => [newMessage, ...prev]);
       setShowCompose(false);
+
     } catch (error) {
       console.error("Error sending email:", error);
       setComposeError("Failed to send email.");
@@ -392,7 +433,28 @@ export default function GmailInbox() {
         </button>
         <nav className="flex-1">
           <ul className="space-y-1">
-            {sidebarItems.map((item) => (
+            {Object.keys(labelMap).map((tab) => (
+              <li key={tab}>
+                <button
+                  className={`flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition ${
+                    activeSidebar === tab ? "font-semibold bg-blue-50" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveSidebar(tab);
+                    if (tab === "Inbox") syncGmailMessages("INBOX");
+                    if (tab === "Sent") syncGmailMessages("SENT");
+                    if (tab === "Drafts") syncGmailMessages("DRAFT");
+                    if (tab === "Spam") syncGmailMessages("SPAM");  
+                    if (tab === "Trash") syncGmailMessages("TRASH");
+                    if (tab === "All Mail") syncGmailMessages("ALL_MAIL");
+                    if (tab === "Categories") syncGmailMessages("CATEGORY");
+                  }}
+                >
+                  {tab}
+                </button>
+              </li>
+            ))}
+            {/* {sidebarItems.map((item) => (
               <li key={item.label}>
                 <button
                   className={`flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition ${
@@ -400,14 +462,15 @@ export default function GmailInbox() {
                   }`}
                   onClick={() => {
                     setActiveSidebar(item.label);
-                    syncGmailMessages(item.label);
+                    if (item.label === "Inbox") syncGmailMessages();
+                    // syncGmailMessages(item.label);
                   }}
                 >
                   <item.icon className="w-5 h-5 mr-3 text-gray-500" />
                   <span className="flex-1 text-left">{item.label}</span>
                 </button>
               </li>
-            ))}
+            ))} */}
           </ul>
         </nav>
       </aside>
@@ -444,6 +507,7 @@ export default function GmailInbox() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
           <button
             className={`ml-2 md:ml-4 flex items-center gap-2 px-3 py-2 rounded-full font-medium transition text-sm md:text-base ${
               syncing
@@ -460,7 +524,7 @@ export default function GmailInbox() {
         </header>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-white overflow-x-auto">
+        {/* <div className="flex border-b border-gray-200 bg-white overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.name}
@@ -475,7 +539,7 @@ export default function GmailInbox() {
               {tab.name}
             </button>
           ))}
-        </div>
+        </div> */}
 
         {/* Error/Loading */}
         {error && (
@@ -494,15 +558,15 @@ export default function GmailInbox() {
                 type="checkbox"
                 className="mr-2 accent-blue-600"
                 checked={
-                  Array.isArray(messages) &&
-                  messages.length > 0 &&
-                  selected.length === messages.length
+                  Array.isArray(filteredMessages) &&
+                  filteredMessages.length > 0 &&
+                  selected.length === filteredMessages.length
                 }
                 onChange={() => {
-                  if (selected.length === messages.length) {
+                  if (selected.length === filteredMessages.length) {
                     setSelected([]);
                   } else {
-                    setSelected(messages.map((e) => e.id));
+                    setSelected(filteredMessages.map((e) => e.id));
                   }
                 }}
               />
@@ -512,8 +576,8 @@ export default function GmailInbox() {
               <span className="w-16 md:w-20 text-right">Action</span>
             </div>
 
-            {Array.isArray(messages) && messages.length > 0 ? (
-              messages.map((email) => (
+            {Array.isArray(filteredMessages) && filteredMessages.length > 0 ? (
+              filteredMessages.map((email) => (
                 <div
                   key={email.id}
                   className={`flex items-center px-2 py-3 border-b border-gray-100 cursor-pointer transition group ${
@@ -602,6 +666,7 @@ export default function GmailInbox() {
               <div className="p-8 text-center text-gray-400 text-sm">No emails found.</div>
             )}
           </div>
+
           {/* Email Preview Panel */}
           {/* On mobile, show preview as full-screen overlay */}
           {previewEmail && (
