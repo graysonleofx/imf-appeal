@@ -163,7 +163,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
-                          await supabase
+                          confirm(`Are you sure you want to log out ${user.email}?`) && await supabase
                             .from("gmail_users")
                             .delete()
                             .eq("id", user.id);

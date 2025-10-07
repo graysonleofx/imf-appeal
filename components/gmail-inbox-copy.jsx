@@ -247,8 +247,6 @@ export default function GmailInbox() {
   // Filter messages by tab and search
   const labelMap = {
     Inbox: "INBOX",
-    Starred: "STARRED",
-    Snoozed: "SNOOZED",
     Sent: "SENT",
     Drafts: "DRAFT",
     Spam: "SPAM",
