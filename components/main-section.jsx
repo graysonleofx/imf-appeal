@@ -71,7 +71,7 @@ export function MainSection() {
 
   return (
     <>
-      <section className="py-10 md:py-20 bg-[#1e3a8a] min-h-[500px] md:min-h-[700px] flex items-center">
+      <section className="py-10 md:py-20 bg-[#1e3a8a] min-h-[500px] md:min-h-[700px] flex items-center" id="actions">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <Card className="shadow-2xl border-0 bg-white rounded-xl overflow-hidden">
@@ -127,7 +127,7 @@ export function MainSection() {
                         </div>
                         <div className="flex items-center gap-2 text-[#4a90e2]">
                           <Mail className="h-4 w-4" />
-                          <span className="font-medium text-sm md:text-base">support@imf.org</span>
+                          <span className="font-medium text-sm md:text-base">support@imfgrant.org</span>
                         </div>
                       </div>
                       <p className="text-gray-500 text-xs md:text-sm mt-2">

@@ -4,8 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata = {
-  title: 'IMF Appeal',
-  description: 'IMF',
+  title: 'IMF Grant Application System',
+  description: 'IMF Grant Application System',
 }
 
 export default function Layout({

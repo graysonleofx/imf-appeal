@@ -2,6 +2,8 @@
 
 import { Search, Twitter, Facebook, Linkedin, Instagram, Youtube, Mic, Printer, Phone, Menu, X } from "lucide-react"
 import { useState } from "react"
+import brand from "@/public/brand.png"
+import Image from "next/image"
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -27,7 +29,7 @@ export function Header() {
               <Mic className="h-4 w-4 text-primary hover:text-primary/80 cursor-pointer hidden md:block" />
               <Printer className="h-4 w-4 text-primary hover:text-primary/80 cursor-pointer hidden md:block" />
               <Phone className="h-4 w-4 text-primary hover:text-primary/80 cursor-pointer hidden md:block" />
-              <div className="bg-red-600 text-white px-2 py-0.5 text-xs font-bold rounded">IMF LIVE</div>
+              <div className="bg-red-600 text-white px-2 py-0.5 text-xs font-bold rounded">IMF GRANT LIVE</div>
             </div>
           </div>
         </div>
@@ -38,16 +40,10 @@ export function Header() {
           <div className="flex-1 hidden md:block"></div>
 
           <div className="flex flex-col items-center space-y-2 md:space-y-4">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary flex items-center justify-center">
-              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-white flex items-center justify-center">
-                <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-white flex items-center justify-center">
-                  <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary"></div>
-                </div>
-              </div>
-            </div>
+            <Image src={brand} alt="Brand Logo" className="h-12 md:h-16 lg:h-20" />
 
             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary tracking-wide text-center">
-              INTERNATIONAL MONETARY FUND
+              INTERNATIONAL MONETARY FUND GRANT PROGRAM
             </h1>
           </div>
 
@@ -70,49 +66,49 @@ export function Header() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center justify-center space-x-8">
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 ABOUT
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 RESEARCH
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 COUNTRIES
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 CAPACITY DEVELOPMENT
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 NEWS
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 VIDEOS
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 DATA
               </a>
               <a
-                href="#"
+                href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 PUBLICATIONS
