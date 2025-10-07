@@ -3,10 +3,10 @@ import React from "react";
 export default function TermsAndConditions() {
   return (
     <main className="container mx-auto max-w-3xl px-6 py-12 bg-white rounded-xl shadow-lg mt-10 mb-10">
-      <h1 className="text-4xl font-bold text-primary mb-8">Privacy Policy for IMF Grant</h1>
+      <h1 className="text-4xl font-bold text-primary mb-8">Privacy Policy </h1>
 
       <p className="text-base text-gray-700 leading-relaxed mb-6">
-        At IMF Grant, we are committed to protecting your privacy. This Privacy Policy outlines how we collect, use, and safeguard your information when you visit our website. By using our site, you agree to the terms of this policy.
+         We are committed to protecting your privacy. This Privacy Policy outlines how we collect, use, and safeguard your information when you visit our website. By using our site, you agree to the terms of this policy.
       </p>
 
       <section className="mb-8">

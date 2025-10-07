@@ -129,31 +129,52 @@ export default function AdminDashboard() {
                 users.map((user) => (
                   <li
                     key={user.id}
-                    onClick={() => handleUserClick(user.id)}
-                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-4 rounded-xl hover:bg-blue-50 cursor-pointer transition group"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 p-4 rounded-xl hover:bg-blue-50 transition group"
                   >
-                    <div>
+                    <div
+                      onClick={() => handleUserClick(user.id)}
+                      className="flex-1 cursor-pointer"
+                    >
                       <p className="font-semibold text-gray-800 group-hover:text-blue-700 transition">
                         {user.name}
                       </p>
                       <p className="text-gray-500 text-sm">{user.email}</p>
                     </div>
-                    <span className="flex items-center gap-1 text-blue-600 font-medium group-hover:underline">
-                      Inbox
-                      <svg
-                        className="w-4 h-4 ml-1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        viewBox="0 0 24 24"
+                    <div className="flex flex-row sm:flex-row items-center gap-2 w-full sm:w-auto">
+                      <span
+                        onClick={() => handleUserClick(user.id)}
+                        className="flex items-center gap-1 text-blue-600 font-medium group-hover:underline cursor-pointer"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </span>
+                        Inbox
+                        <svg
+                          className="w-4 h-4 ml-1"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </span>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await supabase
+                            .from("gmail_users")
+                            .delete()
+                            .eq("id", user.id);
+                          setUsers((prev) => prev.filter((u) => u.id !== user.id));
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition w-full sm:w-auto"
+                        style={{ minWidth: 90 }}
+                      >
+                        Log Out
+                      </button>
+                    </div>
                   </li>
                 ))
               )}

@@ -3,7 +3,7 @@ import React from "react";
 export default function TermsAndConditions() {
   return (
     <main className="container mx-auto max-w-3xl px-6 py-12 bg-white rounded-xl shadow-lg mt-10 mb-10">
-      <h1 className="text-4xl font-bold text-primary mb-8">Terms & Conditions for IMF Grant</h1>
+      <h1 className="text-4xl font-bold text-primary mb-8">Terms & Conditions</h1>
 
       <p className="text-base text-gray-700 leading-relaxed mb-6">
         Please read these terms and conditions carefully before using our website.
@@ -12,7 +12,7 @@ export default function TermsAndConditions() {
       <section className="mb-8">
         <h2 className="text-2xl font-semibold text-primary mb-2">1. Introduction</h2>
         <p className="text-base text-gray-700 leading-relaxed">
-          Welcome to IMF Grant. By accessing or using our website, you agree to comply with and be bound by these Terms & Conditions.
+          Welcome ! By accessing or using our website, you agree to comply with and be bound by these Terms & Conditions.
         </p>
       </section>
 

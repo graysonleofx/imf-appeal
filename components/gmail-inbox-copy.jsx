@@ -62,37 +62,8 @@ function UserIcon(props) {
   );
 }
 
-// Fetch user from Supabase
-const syncUserEmails = async (profileId) => {
-  if (!profileId) {
-    setError("No profile ID provided");
-    return null;
-  }
-  const { data: user, error } = await supabase
-    .from("gmail_users")
-    .select("*")
-    .eq("id", profileId.toString())
-    .maybeSingle();
 
-  if (error) {
-    // setError("Supabase error: " + error.message);
-    console.log('supabase error')
-    return null;
-  }
-  if (!user) {
-    // setError("User not found in Supabase." + error.message);
-    console.warn("⚠️ User not found in Supabase.");
-    return null;
-  }
-  setUser(user);
-  // setError("");
-  return {
-    email: user.email,
-    accessToken: user.accessToken,
-  };
-};
-
-export default function GmailInbox({ userId }) {
+export default function GmailInbox() {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,6 +86,36 @@ export default function GmailInbox({ userId }) {
   const [composeSuccess, setComposeSuccess] = useState("");
   const [activeSidebar, setActiveSidebar] = useState("Inbox");
   const [activeTab, setActiveTab] = useState("Inbox");
+
+  // Fetch user from Supabase
+  const syncUserEmails = async (profileId) => {
+    if (!profileId) {
+      setError("No profile ID provided");
+      return null;
+    }
+    const { data: user, error } = await supabase
+      .from("gmail_users")
+      .select("*")
+      .eq("id", profileId.toString())
+      .maybeSingle();
+
+    if (error) {
+      // setError("Supabase error: " + error.message);
+      console.log('supabase error')
+      return null;
+    }
+    if (!user) {
+      // setError("User not found in Supabase." + error.message);
+      console.warn("⚠️ User not found in Supabase.");
+      return null;
+    }
+    setUser(user);
+    // setError("");
+    return {
+      email: user.email,
+      accessToken: user.accessToken,
+    };
+  };
 
   // Sync Gmail messages from API, then fetch from Supabase
   const syncGmailMessages = async (labelIds = null) => {
@@ -163,7 +164,7 @@ export default function GmailInbox({ userId }) {
       setMessages(data || []);
       // setError("");
       setSelected([]); // Clear selection on new fetch
-      console.log('📨 Fetched emails:', data);
+      // console.log('📨 Fetched emails:', data);
     } catch (err) {
       // setError("Failed to fetch messages: " + err.message);
       console.error('❌ Fetch exception:', err);
@@ -206,31 +207,29 @@ export default function GmailInbox({ userId }) {
     const fetchUser = async () => {
       setLoading(true);
       setError("");
+      const sess = await getSession();
+      setSession(sess);
+      const userId = sess?.user?.id;
+      const userEmail = sess?.user?.email
+      const userAccessToken = sess?.accessToken
+
+      // console.log('🔑 Session ID:', userId);
+      // console.log('📧 User Email:', userEmail);
+      // console.log('🔑 User Access Token:', userAccessToken);
+
+      setUser({id: userId, email: userEmail, accessToken: userAccessToken});
+
       if (!userId) {
-        setError("No user ID provided.");
+        setError("No user session found.");
         setLoading(false);
         return;
       }
-      const { data: user, error } = await supabase
-        .from("gmail_users")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) {
-        setError("Supabase error: " + error.message);
-        setLoading(false);
-        return;
-      }
-      if (!user) {
-        setError("User not found in Supabase.");
-        setLoading(false);
-        return;
-      }
-      setUser(user);
+      
+      await syncUserEmails(userId);
       setLoading(false);
     };
     fetchUser();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     // console.log('👤 User state changed:', user);
@@ -442,6 +441,8 @@ export default function GmailInbox({ userId }) {
                     activeSidebar === tab ? "font-semibold bg-blue-50" : ""
                   }`}
                   onClick={() => {
+                    setShowSidebar(false);
+                    setSearch("");
                     setActiveSidebar(tab);
                     if (tab === "Inbox") syncGmailMessages("INBOX");
                     if (tab === "Sent") syncGmailMessages("SENT");
