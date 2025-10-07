@@ -92,7 +92,7 @@ const syncUserEmails = async (profileId) => {
   };
 };
 
-export default function GmailInbox() {
+export default function GmailInbox({ userId }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -206,29 +206,31 @@ export default function GmailInbox() {
     const fetchUser = async () => {
       setLoading(true);
       setError("");
-      const sess = await getSession();
-      setSession(sess);
-      const userId = sess?.user?.id;
-      const userEmail = sess?.user?.email
-      const userAccessToken = sess?.accessToken
-
-      // console.log('🔑 Session ID:', userId);
-      // console.log('📧 User Email:', userEmail);
-      // console.log('🔑 User Access Token:', userAccessToken);
-
-      setUser({id: userId, email: userEmail, accessToken: userAccessToken});
-
       if (!userId) {
-        setError("No user session found.");
+        setError("No user ID provided.");
         setLoading(false);
         return;
       }
-      
-      await syncUserEmails(userId);
+      const { data: user, error } = await supabase
+        .from("gmail_users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) {
+        setError("Supabase error: " + error.message);
+        setLoading(false);
+        return;
+      }
+      if (!user) {
+        setError("User not found in Supabase.");
+        setLoading(false);
+        return;
+      }
+      setUser(user);
       setLoading(false);
     };
     fetchUser();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     // console.log('👤 User state changed:', user);

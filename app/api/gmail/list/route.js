@@ -72,7 +72,11 @@ export async function GET(req) {
 //  Handle POST to sync emails from Gmail to Supabase
 export async function POST(req) {
   const { accessToken, userEmail } = await req.json();
+  const labelIds = req.url.includes('labelIds') ? req.url.split('labelIds=')[1].split('&')[0].split(',') : null;
 
+  console.log("Syncing emails for:", userEmail, "with labels:", labelIds);
+
+  // Validate input
   if (!accessToken || !userEmail) {
     return NextResponse.json(
       { error: "Missing access token or user email" },
@@ -80,7 +84,8 @@ export async function POST(req) {
         status: 400,
       }
     );
-  }
+  } 
+
   const oauth2Client = new google.auth.OAuth2();
   oauth2Client.setCredentials({ access_token: accessToken });
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
@@ -88,7 +93,7 @@ export async function POST(req) {
   try {
     const listRes = await gmail.users.messages.list({
       userId: "me",
-      labelIds: labelIds || ["INBOX"],
+      labelIds: labelIds || undefined,
       maxResults: 1000,
     });
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages', { params: { maxResults: 1000, access_token: accessToken } });
@@ -103,6 +108,7 @@ export async function POST(req) {
         const msgRes = await gmail.users.messages.get({
           userId: "me",
           id: msg.id,
+          labelIds: labelIds || undefined,
           format: "full",
         });
         // body:JSON.stringify({accessToken, userEmail})
