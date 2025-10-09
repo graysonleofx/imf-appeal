@@ -1,176 +1,140 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import supabase from "@/lib/supabaseClient";
-// import axios from 'axios'
 
-export async function GET(req) {
-  const authHeader = req.headers.get("authorization");
-  const token = authHeader?.split(" ")[1];
+// ✅ Gmail labels map
+const LABEL_MAP = {
+  INBOX: "INBOX",
+  SENT: "SENT",
+  DRAFT: "DRAFT",
+  SPAM: "SPAM",
+  TRASH: "TRASH",
+  ALL_MAIL: "CATEGORY_PERSONAL", // Gmail's "All Mail" may map differently
+  CATEGORY: "CATEGORY_PERSONAL",
+};
 
+/**
+ * ✅ POST: Sync Gmail messages for a specific user
+ * Expects JSON body: { accessToken, userEmail, labelIds? }
+ */
+export async function POST(req) {
+  try {
+    const { accessToken, userEmail, labelIds } = await req.json();
 
-
-  // const url = new URL(req.url);
-  // const token = url.searchParams.get("token");
-  // const label = url.searchParams.get("label") || "INBOX";
-
-  // console.log("Label:", label);
-
-  if(!token){
-    return NextResponse.json({error: 'Missing access token'}, {status: 400});
-  }
-
-    const {data: { accessToken }} = await supabase
-    .from('gmail_users')
-    .select('accessToken')
-    .eq('accessToken', token)
-    .single();
-
-    if(error || !accessToken){
-      return NextResponse.json({error: 'Invalid access token'}, {status: 401}, { headers: { 'Content-Type': 'application/json' } });
+    if (!accessToken || !userEmail) {
+      console.error("❌ Missing required parameters");
+      return NextResponse.json(
+        { error: "Missing access token or user email" },
+        { status: 400 }
+      );
     }
 
+    console.log("🔍 Starting Gmail sync for:", userEmail);
+    console.log("📦 Labels requested:", labelIds || Object.keys(LABEL_MAP));
+
+    // Initialize Google OAuth client
     const oauth2Client = new google.auth.OAuth2();
-
     oauth2Client.setCredentials({ access_token: accessToken });
-
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
+    const labelsToFetch = labelIds?.length
+      ? labelIds
+      : Object.values(LABEL_MAP);
 
-  try {
-    const messagesRes = await gmail.users.messages.list({
-      userId: "me",
-      labelIds: [label],
-      maxResults: 1000,
-    });
+    let allMessages = [];
 
-    const messages = messagesRes.data.messages || [];
-    const detailedMessages = await Promise.all(
-      messages.map(async (msg) => {
-        const msgRes = await gmail.users.messages.get({
-          userId: "me",
-          id: msg.id,
-        });
-        const headers = msgRes.data.payload.headers;
-        const getHeader = (name) => headers.find((h) => h.name === name)?.value || "";
-        return {
-          id: msgRes.data.id,
-          subject: getHeader("Subject"),
-          from: getHeader("From"),
-          data: msgRes.data,
-          message: msgRes.data.snippet,
-        };
-      })
-    );
+    // ✅ Loop through each label
+    for (const label of labelsToFetch) {
+      console.log(`📬 Fetching Gmail label: ${label}`);
 
-    return NextResponse.json(detailedMessages || [], { status: 200 });
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return NextResponse.json({ error: "Error fetching messages" }, { status: 500 }, { headers: { 'Content-Type': 'application/json' } });
-  }
-}
+      const listRes = await gmail.users.messages.list({
+        userId: "me",
+        labelIds: [label],
+        includeSpamTrash: true, // ✅ ensures Spam/Trash messages appear
+        maxResults: 50,
+      });
 
-//  Handle POST to sync emails from Gmail to Supabase
-export async function POST(req) {
-  const { accessToken, userEmail } = await req.json();
-  const labelIds = req.url.includes('labelIds') ? req.url.split('labelIds=')[1].split('&')[0].split(',') : null;
+      const messages = listRes.data.messages || [];
+      console.log(`✅ Found ${messages.length} messages in ${label}`);
 
-  console.log("Syncing emails for:", userEmail, "with labels:", labelIds);
+      if (messages.length === 0) continue;
 
-  // Validate input
-  if (!accessToken || !userEmail) {
-    return NextResponse.json(
-      { error: "Missing access token or user email" },
-      {
-        status: 400,
-      }
-    );
-  } 
+      // Fetch full message details
+      for (const msg of messages) {
+        try {
+          const msgRes = await gmail.users.messages.get({
+            userId: "me",
+            id: msg.id,
+            format: "full",
+          });
 
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
-  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+          const headers = msgRes.data.payload?.headers || [];
+          const getHeader = (name) =>
+            headers.find((h) => h.name === name)?.value || "";
 
-  try {
-    const listRes = await gmail.users.messages.list({
-      userId: "me",
-      labelIds: labelIds || undefined,
-      maxResults: 1000,
-    });
-    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages', { params: { maxResults: 1000, access_token: accessToken } });
-    const messages = listRes.data.messages || [];
+          const subject = getHeader("Subject") || "(No Subject)";
+          const from = getHeader("From") || "(Unknown Sender)";
+          const snippet = msgRes.data.snippet || "";
+          const msgLabels = msgRes.data.labelIds || [];
+          const parts = msgRes.data.payload?.parts || [];
 
-    if (messages.length === 0) {
-      console.log("No messages found.");
-      return NextResponse.json([], { status: 200 });
-    }
-    const detailedMessages = await Promise.all(
-      messages.map(async (msg) => {
-        const msgRes = await gmail.users.messages.get({
-          userId: "me",
-          id: msg.id,
-          labelIds: labelIds || undefined,
-          format: "full",
-        });
-        // body:JSON.stringify({accessToken, userEmail})
-        
-        const headers = msgRes.data.payload?.headers || [];
-        const getHeader = (name) => headers.find((h) => h.name === name)?.value || "";
-        const subject = getHeader("Subject") || "(No Subject)";
-        const from = getHeader("From") || "(Unknown)";
-        const snippet = msgRes.data.snippet || "";
-        const labelIds = msgRes.data.labelIds || [];
+          let body = "";
+          const textPart = parts.find(
+            (p) => p.mimeType === "text/plain" && p.body?.data
+          );
 
-        let body = "" ;
-        const parts = msgRes.data.payload?.parts || [];
-        const textParts = parts.find(part => part.mimeType === 'text/plain' && part.body?.data);
+          if (textPart?.body?.data) {
+            body = Buffer.from(textPart.body.data, "base64").toString("utf-8");
+          } else if (msgRes.data.payload?.body?.data) {
+            body = Buffer.from(
+              msgRes.data.payload.body.data,
+              "base64"
+            ).toString("utf-8");
+          }
 
-        if(textParts?.body?.data){
-          body = Buffer.from(textParts.body.data, 'base64').toString('utf-8');
-        } else if(msgRes.data.payload?.body?.data){
-          body = Buffer.from(msgRes.data.payload.body.data, 'base64').toString('utf-8');
+          allMessages.push({
+            id: msg.id,
+            user_email: userEmail.toLowerCase(),
+            subject,
+            from,
+            snippet,
+            body,
+            labelIds: msgLabels,
+            unread: msgLabels.includes("UNREAD"),
+            created_at: new Date().toISOString(),
+          });
+        } catch (msgErr) {
+          console.error(`⚠️ Failed to fetch message ${msg.id}:`, msgErr);
         }
-          
-        console.log("Message:", {id: msgRes.data.id, subject, from, snippet, body, labelIds});
-
-        return {
-          id: msgRes.data.id,
-          user_email: userEmail,
-          subject,
-          from,
-          raw: msgRes.data,
-          snippet,
-          created_at: new Date().toISOString(),
-          body,
-          labelIds,
-        };
-      })
-    );
-
-    // Insert into supabase
-    // const {error} = await supabase
-    //  .from('gmail_messages')
-    //  .insert(detailedMessages);
-    try {
-      const { error } = await supabase.from("gmail_messages").insert(detailedMessages , { onConflict: 'id, user_email', ignoreDuplicates: false });
-    } catch (insertError) {
-      console.error("Supabase insert error:", insertError);
+      }
     }
 
-    const { error } = await supabase
-      .from("gmail_users")
-      .upsert({ email: userEmail, access_token: accessToken }, { onConflict: "email" });
+    // ✅ Save messages to Supabase
+    if (allMessages.length > 0) {
+      const { error: insertError } = await supabase
+        .from("gmail_messages")
+        .upsert(allMessages, { onConflict: "id" });
 
-    if (error) {
-      console.error("Supabase insert error", error);
-      return NextResponse.json({ error: "Failed to save messages" }, { status: 500 });
+      if (insertError) {
+        console.error("❌ Supabase insert error:", insertError);
+        return NextResponse.json(
+          { error: "Failed to save messages" },
+          { status: 500 }
+        );
+      }
+
+      console.log(`✅ Synced ${allMessages.length} messages for ${userEmail}`);
+    } else {
+      console.log(`ℹ️ No messages found for ${userEmail}.`);
     }
 
-    console.log(`✅ Synced ${detailedMessages.length} messages for ${userEmail}`);
-  
-    return NextResponse.json({ success: true, count: detailedMessages.length });
-
-  } catch(error){
-     console.error("Gmail sync error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      count: allMessages.length,
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("❌ Gmail sync fatal error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
