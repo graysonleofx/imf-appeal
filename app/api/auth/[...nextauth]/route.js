@@ -18,7 +18,7 @@ const handler = NextAuth({
             //   "https://www.googleapis.com/auth/gmail.send",
             //   "https://mail.google.com"
             // ].join(''),
-            scope: ["https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid email https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://mail.google.com/"].join(" "), 
+            scope: ["https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid email https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://mail.google.com"].join(" "), 
             access_type: "offline",
             prompt: "consent",
             response_type: "code"
@@ -47,8 +47,8 @@ const handler = NextAuth({
         token.name = profile.name;
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
-        console.log("JWT Profile:", profile);
-        console.log("JWT Account:", account);
+        // console.log("JWT Profile:", profile);
+        // console.log("JWT Account:", account);
         // Store user info in Supabase
         const {data, error} = await supabase 
          .from('gmail_users')

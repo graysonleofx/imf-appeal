@@ -1,24 +1,48 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import supabase from "@/lib/supabaseClient";
 
 const ACCESS_CODE_KEY = "admin_access_code";
-const VALID_ACCESS_CODE = process.env.NEXT_PUBLIC_ADMIN_ACCESS_CODE || process.env.NEXT_PUBLIC_ADMIN_ACCESS_CODE2; // Set your code in .env
+const VALID_ACCESS_CODE =
+  process.env.NEXT_PUBLIC_ADMIN_ACCESS_CODE ||
+  process.env.NEXT_PUBLIC_ADMIN_ACCESS_CODE2;
+
+// 🔹 NEW: credentials for Supabase admin account (stored in .env.local)
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
 
 function AccessCodeScreen({ onSuccess }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (code === VALID_ACCESS_CODE) {
-      localStorage.setItem(ACCESS_CODE_KEY, code);
-      setError("");
-      onSuccess();
-    } else {
+
+    if (code !== VALID_ACCESS_CODE) {
       setError("Invalid access code. Please try again.");
+      return;
     }
+
+    // ✅ Step 1: Save access code locally
+    localStorage.setItem(ACCESS_CODE_KEY, code);
+    setError("");
+
+    // ✅ Step 2: Log into Supabase as admin
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+    });
+
+    if (signInError) {
+      console.error("Supabase admin login failed:", signInError);
+      setError("Failed to sign in. Please check your admin credentials.");
+      return;
+    }
+
+    console.log("Admin signed in successfully:", data);
+    onSuccess();
   };
 
   return (
@@ -61,22 +85,29 @@ export default function AdminDashboard() {
   const [authorized, setAuthorized] = useState(false);
   const router = useRouter();
 
+  // ✅ Step 1: Check for access code and Supabase session
   useEffect(() => {
-    // Check for access code in localStorage
-    const code =
-      typeof window !== "undefined" && localStorage.getItem(ACCESS_CODE_KEY);
-    if (code === VALID_ACCESS_CODE) {
-      setAuthorized(true);
-    }
+    const init = async () => {
+      const code = localStorage.getItem(ACCESS_CODE_KEY);
+      if (code === VALID_ACCESS_CODE) {
+        setAuthorized(true);
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) {
+        console.log("No Supabase session. Redirecting to login...");
+        setAuthorized(false);
+      }
+    };
+    init();
   }, []);
 
+  // ✅ Step 2: Fetch users from Supabase
   useEffect(() => {
     if (!authorized) return;
     async function fetchUsers() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("gmail_users")
-        .select("*");
+      const { data, error } = await supabase.from("gmail_users").select("*");
       if (error) {
         console.error("Error fetching users:", error);
       } else {
@@ -87,8 +118,16 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [authorized]);
 
+  // ✅ Step 3: Handle inbox redirect
   const handleUserClick = (userId) => {
     router.push(`/admin/inbox/${userId}`);
+  };
+
+  // ✅ Step 4: Logout function
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem(ACCESS_CODE_KEY);
+    router.push("/admin");
   };
 
   if (!authorized) {
@@ -106,13 +145,20 @@ export default function AdminDashboard() {
             <span className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold text-lg">
               Total Users: {loading ? "..." : users.length}
             </span>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              Log Out
+            </button>
           </div>
         </header>
+
         <section className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <h2 className="text-2xl font-bold text-gray-700">User List</h2>
             <span className="text-gray-400 text-sm">
-              Click a user to view their gmail inbox.
+              Click a user to view their Gmail inbox.
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -163,16 +209,24 @@ export default function AdminDashboard() {
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
-                          confirm(`Are you sure you want to log out ${user.email}?`) && await supabase
-                            .from("gmail_users")
-                            .delete()
-                            .eq("id", user.id);
-                          setUsers((prev) => prev.filter((u) => u.id !== user.id));
+                          if (
+                            confirm(
+                              `Are you sure you want to delete ${user.email}?`
+                            )
+                          ) {
+                            await supabase
+                              .from("gmail_users")
+                              .delete()
+                              .eq("id", user.id);
+                            setUsers((prev) =>
+                              prev.filter((u) => u.id !== user.id)
+                            );
+                          }
                         }}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition w-full sm:w-auto"
                         style={{ minWidth: 90 }}
                       >
-                        Log Out
+                        Delete
                       </button>
                     </div>
                   </li>
