@@ -1,23 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import supabase from "@/lib/supabaseClient";
 import {
-  InboxIcon,
-  StarIcon,
-  TrashIcon,
   PencilIcon,
   ArrowPathIcon,
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { DeleteIcon } from "lucide-react";
 
 export default function GmailInbox() {
-  const { id: userId } = useParams(); // ✅ clicked user id from URL
-  const router = useRouter();
+  const { id: userId } = useParams(); // ✅ user id from URL
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,13 +25,6 @@ export default function GmailInbox() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [activeSidebar, setActiveSidebar] = useState("Inbox");
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showCompose, setShowCompose] = useState(false);
-  const [composeTo, setComposeTo] = useState("");
-  const [composeSubject, setComposeSubject] = useState("");
-  const [composeBody, setComposeBody] = useState("");
-  const [composeSending, setComposeSending] = useState(false);
-  const [composeError, setComposeError] = useState("");
-  const [composeSuccess, setComposeSuccess] = useState("");
 
   const labelMap = {
     Inbox: "INBOX",
@@ -44,16 +32,14 @@ export default function GmailInbox() {
     Drafts: "DRAFT",
     Spam: "SPAM",
     Trash: "TRASH",
-    "All Mail": "ALL_MAIL",
-    Categories: "CATEGORY",
+    "All Mail": "CATEGORY_PERSONAL", // Gmail uses CATEGORY_* for All Mail
   };
 
-  // ✅ 1. Fetch clicked user credentials
+  // ✅ 1. Fetch user and auto-sync Gmail on load
   useEffect(() => {
     const fetchUser = async () => {
       if (!userId) return;
       setLoading(true);
-
       const { data, error } = await supabase
         .from("gmail_users")
         .select("*")
@@ -69,6 +55,28 @@ export default function GmailInbox() {
 
       setUser(data);
       console.log("✅ Viewing inbox for:", data.email);
+
+      // 🆕 Immediately trigger sync when user loads
+      try {
+        const res = await fetch("/api/gmail/list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: data.accessToken,
+            userEmail: data.email,
+          }),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          console.log(`✅ Initial sync complete (${result.count || 0} msgs)`);
+          await fetchMessages(data.email);
+        } else {
+          console.error("❌ Initial sync failed:", result);
+        }
+      } catch (err) {
+        console.error("🚨 Sync error:", err);
+      }
+
       setLoading(false);
     };
 
@@ -76,14 +84,15 @@ export default function GmailInbox() {
   }, [userId]);
 
   // ✅ 2. Fetch messages from Supabase
-  const fetchMessages = async () => {
-    if (!user?.email) return;
+  const fetchMessages = async (email) => {
+    const targetEmail = email || user?.email;
+    if (!targetEmail) return;
     setLoading(true);
 
     const { data, error } = await supabase
       .from("gmail_messages")
       .select("*")
-      .eq("user_email", user.email.toLowerCase().trim())
+      .eq("user_email", targetEmail.toLowerCase().trim())
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -96,11 +105,7 @@ export default function GmailInbox() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchMessages();
-  }, [user]);
-
-  // ✅ 3. Sync Gmail messages (from API)
+  // ✅ 3. Manual sync by label
   const syncGmailMessages = async (labelIds = null) => {
     if (!user?.accessToken || !user?.email) return;
     setSyncing(true);
@@ -116,8 +121,8 @@ export default function GmailInbox() {
       });
       const result = await res.json();
       if (res.ok) {
-        console.log("✅ Gmail synced successfully");
-        fetchMessages();
+        console.log(`✅ Gmail synced: ${result.count || 0} messages`);
+        await fetchMessages();
       } else {
         console.error("❌ Sync failed:", result);
       }
@@ -127,7 +132,7 @@ export default function GmailInbox() {
     setSyncing(false);
   };
 
-  // ✅ 4. Fetch single email body
+  // ✅ 4. Load full message body
   const fetchEmailBody = async (emailId) => {
     setPreviewLoading(true);
     setPreviewBody("");
@@ -140,7 +145,6 @@ export default function GmailInbox() {
 
       setPreviewBody(data?.body || "No message body found.");
 
-      // ✅ Mark as read if "UNREAD"
       if (data?.labelIds?.includes("UNREAD")) {
         const newLabels = data.labelIds.filter((l) => l !== "UNREAD");
         await supabase
@@ -148,8 +152,8 @@ export default function GmailInbox() {
           .update({ labelIds: newLabels })
           .eq("id", emailId);
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === emailId ? { ...msg, labelIds: newLabels } : msg
+          prev.map((m) =>
+            m.id === emailId ? { ...m, labelIds: newLabels } : m
           )
         );
       }
@@ -159,10 +163,9 @@ export default function GmailInbox() {
     setPreviewLoading(false);
   };
 
-  // ✅ 5. Live update when new emails arrive
+  // ✅ 5. Realtime updates
   useEffect(() => {
     if (!user?.email) return;
-    console.log("👂 Listening for new emails via Supabase realtime...");
     const channel = supabase
       .channel(`inbox-${user.email}`)
       .on(
@@ -174,18 +177,17 @@ export default function GmailInbox() {
           filter: `user_email=eq.${user.email}`,
         },
         (payload) => {
-          console.log("📩 New email:", payload.new);
+          console.log("📩 New message:", payload.new);
           setMessages((prev) => [payload.new, ...prev]);
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user?.email]);
 
-  // ✅ 6. Auto-poll every 60s
+  // ✅ 6. Auto-sync every 60s
   useEffect(() => {
     if (!user?.accessToken || !user?.email) return;
     const interval = setInterval(() => {
@@ -195,29 +197,28 @@ export default function GmailInbox() {
     return () => clearInterval(interval);
   }, [user?.accessToken, user?.email, activeSidebar]);
 
-  // ✅ 7. Properly handle label filtering even if labelIds is string
-  const filteredMessages = messages.filter((msg) => {
-    const labels = Array.isArray(msg.labelIds)
-      ? msg.labelIds
-      : typeof msg.labelIds === "string"
-      ? JSON.parse(msg.labelIds)
-      : [];
+  // ✅ 7. Filter by label + search
+  const filteredMessages = messages
+    .filter((msg) => {
+      const labels = Array.isArray(msg.labelIds)
+        ? msg.labelIds
+        : typeof msg.labelIds === "string"
+        ? JSON.parse(msg.labelIds)
+        : [];
 
-    if (activeSidebar === "Inbox") {
-      return labels.includes("INBOX");
-    }
+      const labelId = labelMap[activeSidebar];
+      return labelId ? labels.includes(labelId) : labels.includes("INBOX");
+    })
+    .filter(
+      (msg) =>
+        msg.from?.toLowerCase().includes(search.toLowerCase()) ||
+        msg.subject?.toLowerCase().includes(search.toLowerCase())
+    );
 
-    const labelId = labelMap[activeSidebar];
-    return labelId ? labels.includes(labelId) : false;
-  }).filter(
-    (msg) =>
-      msg.from?.toLowerCase().includes(search.toLowerCase()) ||
-      msg.subject?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // ✅ 8. UI
-  if (loading) return <div className="p-8 text-center text-gray-400">Loading...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+  if (loading)
+    return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (error)
+    return <div className="p-8 text-center text-red-500">{error}</div>;
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -252,7 +253,7 @@ export default function GmailInbox() {
 
         <button
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-6 py-3 mb-6 shadow transition w-full"
-          onClick={() => setShowCompose(true)}
+          onClick={() => alert("Compose not implemented")}
         >
           <PencilIcon className="w-5 h-5" />
           Compose
@@ -343,6 +344,7 @@ export default function GmailInbox() {
             )}
           </div>
 
+          {/* Preview */}
           {previewEmail && (
             <div className="fixed inset-0 z-50 bg-white flex flex-col md:static md:w-full md:max-w-2xl md:border-l md:border-gray-200">
               <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -350,7 +352,9 @@ export default function GmailInbox() {
                   <div className="text-lg font-semibold">
                     {previewEmail.subject}
                   </div>
-                  <div className="text-gray-500 text-sm">{previewEmail.from}</div>
+                  <div className="text-gray-500 text-sm">
+                    {previewEmail.from}
+                  </div>
                 </div>
                 <button
                   className="text-gray-400 hover:text-gray-700 text-2xl font-bold"
