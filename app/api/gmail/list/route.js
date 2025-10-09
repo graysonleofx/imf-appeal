@@ -95,7 +95,7 @@ export async function POST(req) {
     const { error } = await supabase
       .from("gmail_messages")
       .upsert(validMessages, {
-        onConflict: "id",
+        onConflict: "id, user_email",
         ignoreDuplicates: false,
       });
 

@@ -53,8 +53,15 @@ export default function GmailInbox() {
         return;
       }
 
-      setUser(data);
-      console.log("✅ Viewing inbox for:", data.email);
+      // Normalize key names so both access_token and accessToken work
+      const normalizedUser = {
+        ...data,
+        accessToken: data.accessToken || data.access_token,
+        email: data.email?.toLowerCase().trim(),
+      };
+      setUser(normalizedUser);
+      console.log("✅ Viewing inbox for:", normalizedUser.email);
+
 
       // 🆕 Immediately trigger sync when user loads
       try {
