@@ -9,7 +9,10 @@ import {
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
+  TrashIcon,
+  
 } from "@heroicons/react/24/outline";
+import { RotateCcwIcon } from "lucide-react";
 
 export default function GmailInbox() {
   const { id: userId } = useParams(); // ✅ user id from URL
@@ -204,6 +207,42 @@ export default function GmailInbox() {
     return () => clearInterval(interval);
   }, [user?.accessToken, user?.email, activeSidebar]);
 
+
+  
+  // ✅ Delete or Restore
+  const handleMessageAction = async (messageId, action) => {
+    if (!user?.accessToken) return;
+
+    const actionLabels = {
+      delete: "🗑 Move to Trash?",
+      restore: "♻ Restore this message to Inbox?",
+      permanent: "⚠ Permanently delete this message?",
+    };
+    if (!window.confirm(actionLabels[action])) return;
+
+    try {
+      const res = await fetch("/api/gmail/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken: user.accessToken,
+          messageId,
+          action,
+        }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        console.log(`✅ ${action} success`);
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      } else {
+        console.error("❌ Action failed:", result.error);
+      }
+    } catch (err) {
+      console.error("Action error:", err);
+    }
+  };
+
   // ✅ 7. Filter by label + search
   const filteredMessages = messages
     .filter((msg) => {
@@ -341,6 +380,40 @@ export default function GmailInbox() {
                   </span>
                   <span className="flex-1 truncate text-gray-600">
                     {email.subject}
+                  </span>
+                  <span className="ml-4 text-sm text-gray-400">
+                    {activeSidebar === "Trash" ? (
+                      <>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleMessageAction(email.id, 'restore');
+                          }}
+                        >
+                          <RotateCcwIcon className="w-5 h-5 text-gray-400 hover:text-blue-600" />
+                        </button>
+
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleMessageAction(email.id, 'permanently');
+                          }}
+                        >
+                          <TrashIcon className="w-5 h-5 text-gray-400 hover:text-red-600" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleMessageAction(email.id, 'delete');
+                          }}
+                        >
+                          <TrashIcon className="w-5 h-5 text-gray-400 hover:text-red-600" />
+                        </button>
+                      </>
+                    )}
                   </span>
                 </div>
               ))
