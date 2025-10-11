@@ -12,6 +12,8 @@ import {
   ChatBubbleLeftRightIcon,
   XMarkIcon,
   PaperAirplaneIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 
 function generateId() {
@@ -24,23 +26,30 @@ export default function NotepadPage() {
   const [search, setSearch] = useState("");
   const [saveStatus, setSaveStatus] = useState("All changes saved");
   const [showSupport, setShowSupport] = useState(false);
-  const [sendingStatus, setSendingStatus] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
 
-  // Load Supabase session to get Google user & token
+  // Fetch latest signed-in user from gmail_users table
   useEffect(() => {
-    const getUserSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserEmail(session.user.email);
-        // Supabase Google provider stores access_token in session
-        setAccessToken(session.provider_token);
+    const fetchLatestUser = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("gmail_users")
+          .select("email, access_token")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) console.error("Supabase fetch error:", error);
+        if (data) {
+          setUserEmail(data.email);
+          setAccessToken(data.access_token);
+        }
+      } catch (err) {
+        console.error("Error fetching gmail_users:", err);
       }
     };
-    getUserSession();
+    fetchLatestUser();
   }, []);
 
   // Load notes from localStorage
@@ -53,12 +62,12 @@ export default function NotepadPage() {
     }
   }, []);
 
-  // Save notes to localStorage
+  // Auto-save
   useEffect(() => {
     localStorage.setItem("notes-app-v1", JSON.stringify(notes));
   }, [notes]);
 
-  // Auto-save indicator
+  // Save indicator
   useEffect(() => {
     if (saveStatus === "Saving...") {
       const t = setTimeout(() => setSaveStatus("All changes saved"), 1000);
@@ -66,13 +75,12 @@ export default function NotepadPage() {
     }
   }, [saveStatus]);
 
-  // Show support popup
+  // Support popup timer
   useEffect(() => {
     const timer = setTimeout(() => setShowSupport(true), 30000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Filter notes by search
   const filteredNotes = notes.filter(
     (n) =>
       n.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,11 +88,7 @@ export default function NotepadPage() {
   );
 
   const handleCreateNote = () => {
-    const newNote = {
-      id: generateId(),
-      title: "",
-      content: "",
-    };
+    const newNote = { id: generateId(), title: "", content: "" };
     setNotes([newNote, ...notes]);
     setSelectedId(newNote.id);
     setSaveStatus("Saving...");
@@ -108,10 +112,10 @@ export default function NotepadPage() {
 
   const selectedNote = notes.find((n) => n.id === selectedId);
 
-  // --- Gmail Send Function ---
+  // ✉️ Gmail send
   const sendNoteToGmail = async () => {
     if (!accessToken) {
-      alert("Please sign in with Google to send notes.");
+      alert("Google token not found — please log in again.");
       return;
     }
     if (!selectedNote) {
@@ -119,23 +123,21 @@ export default function NotepadPage() {
       return;
     }
 
-    setSendingStatus("Sending...");
-
     try {
-      const email = [
+      const emailBody = [
         `To: ${userEmail}`,
-        "Subject: " + (selectedNote.title || "Untitled Note"),
+        `Subject: ${selectedNote.title || "Untitled Note"}`,
         "Content-Type: text/plain; charset=UTF-8",
         "",
         selectedNote.content || "(No content)",
       ].join("\n");
 
-      const encodedMessage = btoa(unescape(encodeURIComponent(email)))
+      const encodedMessage = btoa(unescape(encodeURIComponent(emailBody)))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=+$/, "");
 
-      const response = await fetch(
+      const res = await fetch(
         "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
         {
           method: "POST",
@@ -147,29 +149,26 @@ export default function NotepadPage() {
         }
       );
 
-      if (response.ok) {
-        setSendingStatus("Sent!");
-        setTimeout(() => setSendingStatus(""), 3000);
+      if (res.ok) {
+        alert("✅ Note Saved to your Gmail!");
       } else {
-        const error = await response.json();
-        console.error("Gmail Send Error:", error);
-        setSendingStatus("Error sending note.");
+        const err = await res.json();
+        console.error("Gmail save error:", err);
+        alert("⚠️ Failed to Save note. Please try again.");
       }
     } catch (err) {
-      console.error("Send error:", err);
-      setSendingStatus("Error sending note.");
+      console.error("Save to Gmail failed:", err);
+      alert("⚠️ Error saving note.");
     }
   };
 
+
   return (
     <div className="min-h-screen bg-black flex flex-col relative">
-      {/* Status Bar */}
+      {/* Status bar */}
       <div className="flex items-center justify-between px-4 pt-3 pb-1 select-none">
         <span className="text-xs text-yellow-400 font-mono tracking-widest">
-          {new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
         {userEmail && (
           <span className="text-xs text-yellow-500 truncate max-w-[150px]">
@@ -180,12 +179,10 @@ export default function NotepadPage() {
 
       {/* Header */}
       <div className="px-4 pb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-yellow-400 tracking-tight">
-          Notepad
-        </h1>
+        <h1 className="text-2xl font-bold text-yellow-400 tracking-tight">Notepad</h1>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className="px-4 pb-2">
         <input
           className="w-full rounded-full bg-neutral-900 text-yellow-100 placeholder:text-neutral-400 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
@@ -197,13 +194,9 @@ export default function NotepadPage() {
 
       {/* Notes List */}
       <div className="flex-1 overflow-y-auto px-2 pb-24">
-        <div className="text-xs text-neutral-400 uppercase px-2 pt-2 pb-1">
-          Notes
-        </div>
+        <div className="text-xs text-neutral-400 uppercase px-2 pt-2 pb-1">Notes</div>
         {filteredNotes.length === 0 && (
-          <div className="text-neutral-600 text-center mt-8">
-            No notes yet.
-          </div>
+          <div className="text-neutral-600 text-center mt-8">No notes yet.</div>
         )}
         <ul>
           {filteredNotes.map((note) => (
@@ -226,20 +219,18 @@ export default function NotepadPage() {
         </ul>
       </div>
 
-      {/* Main Editor */}
+      {/* Note Editor */}
       {selectedNote && (
-        <div className="fixed inset-0 z-30 bg-black bg-opacity-95 flex flex-col md:static md:bg-transparent md:p-0 transition-all">
+        <div className="fixed inset-0 z-30 bg-black bg-opacity-95 flex flex-col md:static md:bg-transparent md:p-0 transition-all duration-300 mb-24">
           <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
             <button
-              className="md:hidden text-yellow-400 font-bold text-lg"
+              className="flex text-yellow-400 font-bold text-lg"
               onClick={() => setSelectedId(null)}
-              aria-label="Back"
+              aria-label="Close Note Editor"
             >
               ←
             </button>
-            <span className="text-yellow-400 font-semibold text-lg">
-              Edit Note
-            </span>
+            <span className="text-yellow-400 font-semibold text-lg">Edit Note</span>
             <span />
           </div>
           <div className="flex-1 flex flex-col p-4">
@@ -255,42 +246,33 @@ export default function NotepadPage() {
               onChange={(e) => handleContentChange(e.target.value)}
               placeholder="Start typing your note..."
               rows={16}
-              style={{ minHeight: "300px" }}
+              style={{ minHeight: "400px" }}
             />
             <div className="flex justify-between items-center mt-3">
-              <div>
-                <span
-                  className={`text-xs ${
-                    saveStatus === "Saving..."
-                      ? "text-yellow-400"
-                      : "text-green-500"
-                  }`}
-                >
-                  {saveStatus}
-                </span>
-              </div>
+              <span
+                className={`text-xs ${
+                  saveStatus === "Saving..." ? "text-yellow-400" : "text-green-500"
+                }`}
+              >
+                {saveStatus}
+              </span>
 
-              {/* Send to Gmail Button */}
               {userEmail && (
                 <button
                   onClick={sendNoteToGmail}
                   className="flex items-center gap-1 bg-yellow-400 text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-yellow-300 transition"
                 >
                   <PaperAirplaneIcon className="w-4 h-4" />
-                  Send to Gmail
+                  Save to Gmail
                 </button>
               )}
             </div>
-
-            {sendingStatus && (
-              <div className="text-xs text-yellow-400 mt-2">{sendingStatus}</div>
-            )}
           </div>
         </div>
       )}
 
       {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-950 border-t border-neutral-800 flex items-center justify-between px-8 py-3 md:px-16">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-950 border-t border-neutral-800 flex items-center justify-between px-8 py-3 md:px-16 ">
         <button
           className="flex flex-col items-center text-yellow-400 hover:text-yellow-300"
           onClick={handleCreateNote}
@@ -300,7 +282,7 @@ export default function NotepadPage() {
         </button>
       </div>
 
-      {/* Support Popup */}
+      {/* Support popup */}
       {showSupport && (
         <div className="fixed inset-0 z-50 bg-white bg-opacity-70 flex items-center justify-center">
           <div className="bg-neutral-50 rounded-2xl shadow-xl p-6 w-80 flex flex-col items-center relative">
@@ -314,11 +296,10 @@ export default function NotepadPage() {
             <ChatBubbleLeftRightIcon className="w-12 h-12 text-blue-400 mb-2" />
             <h2 className="text-blue-400 font-bold text-lg mb-2">Need Help?</h2>
             <p className="text-blue-400 text-center mb-4">
-              Contact our support team if you have any questions or need
-              assistance.
+              Contact our support team if you have any questions or need assistance.
             </p>
             <a
-              href="mailto:support@imfgrant.com"
+              href="mailto:publicaffair@imfgrant.com"
               className="px-4 py-2 rounded bg-blue-400 text-black font-bold hover:bg-blue-300 transition"
             >
               Contact Support
