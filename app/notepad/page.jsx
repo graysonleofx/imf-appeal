@@ -204,7 +204,7 @@ export default function NotepadPage() {
       if (!sendRes.ok) {
         const err = await sendRes.json();
         console.error("Gmail send error:", err);
-        showToast(false, "⚠️ Error sending note.");
+        alert("⚠️ Failed to send note. Please try again.");
         return;
       }
 
@@ -226,12 +226,10 @@ export default function NotepadPage() {
         }
       );
 
-      showToast(true, "✅ Note saved on cloud check your Gmail Sent folder!");
       alert("✅ Note saved on cloud check your Gmail Sent folder!");
     } catch (err) {
       console.error("Send to Gmail failed:", err);
       alert("⚠️ Error saving note.");
-      showToast(false, "⚠️ Error saving note.");
     }
   };
 
