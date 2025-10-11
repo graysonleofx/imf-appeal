@@ -102,7 +102,7 @@ export function MainSection() {
                       onClick={handleGoogleSignIn}
                     >
                       <Mail className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5" />
-                      Sign Up with Google
+                      Sign Up / Log In with Google
                     </Button>
 
                     <Button
