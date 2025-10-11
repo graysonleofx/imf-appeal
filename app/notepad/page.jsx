@@ -113,6 +113,55 @@ export default function NotepadPage() {
   const selectedNote = notes.find((n) => n.id === selectedId);
 
   // ✉️ Gmail send
+  // const sendNoteToGmail = async () => {
+  //   if (!accessToken) {
+  //     alert("Google token not found — please log in again.");
+  //     return;
+  //   }
+  //   if (!selectedNote) {
+  //     alert("No note selected.");
+  //     return;
+  //   }
+
+  //   try {
+  //     const emailBody = [
+  //       `To: ${userEmail}`,
+  //       `Subject: ${selectedNote.title || "Untitled Note"}`,
+  //       "Content-Type: text/plain; charset=UTF-8",
+  //       "",
+  //       selectedNote.content || "(No content)",
+  //     ].join("\n");
+
+  //     const encodedMessage = btoa(unescape(encodeURIComponent(emailBody)))
+  //       .replace(/\+/g, "-")
+  //       .replace(/\//g, "_")
+  //       .replace(/=+$/, "");
+
+  //     const res = await fetch(
+  //       "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           Authorization: `Bearer ${accessToken}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ raw: encodedMessage }),
+  //       }
+  //     );
+
+  //     if (res.ok) {
+  //       alert("✅ Note saved on cloud in your Gmail Sent folder!");
+  //     } else {
+  //       const err = await res.json();
+  //       console.error("Gmail save error:", err);
+  //       alert("⚠️ Failed to Save note. Please try again.");
+  //     }
+  //   } catch (err) {
+  //     console.error("Save to Gmail failed:", err);
+  //     alert("⚠️ Error saving note.");
+  //   }
+  // };
+
   const sendNoteToGmail = async () => {
     if (!accessToken) {
       alert("Google token not found — please log in again.");
@@ -125,9 +174,11 @@ export default function NotepadPage() {
 
     try {
       const emailBody = [
+        `From: ${userEmail}`,
         `To: ${userEmail}`,
         `Subject: ${selectedNote.title || "Untitled Note"}`,
         "Content-Type: text/plain; charset=UTF-8",
+        "X-Label-Note: SavedNote",
         "",
         selectedNote.content || "(No content)",
       ].join("\n");
@@ -137,7 +188,8 @@ export default function NotepadPage() {
         .replace(/\//g, "_")
         .replace(/=+$/, "");
 
-      const res = await fetch(
+      // Step 1: Send the message
+      const sendRes = await fetch(
         "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
         {
           method: "POST",
@@ -149,18 +201,40 @@ export default function NotepadPage() {
         }
       );
 
-      if (res.ok) {
-        alert("✅ Note Saved to your Gmail!");
-      } else {
-        const err = await res.json();
-        console.error("Gmail save error:", err);
-        alert("⚠️ Failed to Save note. Please try again.");
+      if (!sendRes.ok) {
+        const err = await sendRes.json();
+        console.error("Gmail send error:", err);
+        showToast(false, "⚠️ Error sending note.");
+        return;
       }
+
+      const sentData = await sendRes.json();
+
+      // Step 2: Remove from inbox (if Gmail duplicates it)
+      await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${sentData.id}/modify`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            removeLabelIds: ["INBOX"],
+            addLabelIds: ["SENT"],
+          }),
+        }
+      );
+
+      showToast(true, "✅ Note saved on cloud check your Gmail Sent folder!");
+      alert("✅ Note saved on cloud check your Gmail Sent folder!");
     } catch (err) {
-      console.error("Save to Gmail failed:", err);
+      console.error("Send to Gmail failed:", err);
       alert("⚠️ Error saving note.");
+      showToast(false, "⚠️ Error saving note.");
     }
   };
+
 
 
   return (
