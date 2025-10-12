@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import supabase from "../../../../lib/supabaseClient";
+import supabase from "../../../../lib/supabaseClient";  
 
 const handler = NextAuth({
   providers: [
@@ -18,7 +18,7 @@ const handler = NextAuth({
             //   "https://www.googleapis.com/auth/gmail.send",
             //   "https://mail.google.com"
             // ].join(''),
-            scope: ["https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid email https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://mail.google.com"].join(" "), 
+            scope: ["https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid email https://www.googleapis.com/auth/gmail.send  https://www.googleapis.com/auth/gmail.modify"].join(" "), 
             access_type: "offline",
             prompt: "consent",
             response_type: "code"

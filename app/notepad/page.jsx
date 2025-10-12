@@ -335,7 +335,7 @@ export default function NotepadPage() {
                   className="flex items-center gap-1 bg-yellow-400 text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-yellow-300 transition"
                 >
                   <PaperAirplaneIcon className="w-4 h-4" />
-                  Save
+                  Save 
                 </button>
               )}
             </div>
