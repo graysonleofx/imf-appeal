@@ -2,6 +2,7 @@
 
 import { Search, Twitter, Facebook, Linkedin, Instagram, Youtube, Mic, Printer, Phone, Menu, X } from "lucide-react"
 import { useState } from "react"
+import Link from "next/link"
 import brand from "@/public/brand.png"
 import Image from "next/image"
 
@@ -13,7 +14,7 @@ export function Header() {
   }
 
   return (
-    <header className="bg-background">
+    <header className=" top-0 z-50 bg-white shadow-sm">
       <div className="border-b border-border/50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
@@ -65,54 +66,54 @@ export function Header() {
           <div className="flex items-center justify-between md:justify-center py-4">
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center justify-center space-x-8">
-              <a
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 ABOUT
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 RESEARCH
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 COUNTRIES
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 CAPACITY DEVELOPMENT
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 NEWS
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 VIDEOS
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 DATA
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#actions"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 PUBLICATIONS
-              </a>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -138,62 +139,62 @@ export function Header() {
           {isMobileMenuOpen && (
             <div className="md:hidden border-t border-border bg-background">
               <div className="py-4 space-y-4">
-                <a
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   ABOUT
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   RESEARCH
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   COUNTRIES
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   CAPACITY DEVELOPMENT
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   NEWS
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   VIDEOS
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   DATA
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#"
                   className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   PUBLICATIONS
-                </a>
+                </Link>
               </div>
             </div>
           )}
