@@ -67,25 +67,65 @@ export default function GmailInbox() {
 
 
       // 🆕 Immediately trigger sync when user loads
+      // try {
+      //   const res = await fetch("/api/gmail/list", {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({
+      //       accessToken: data.accessToken,
+      //       userEmail: data.email,
+      //     }),
+      //   });
+      //   const result = await res.json();
+      //   if (res.ok) {
+      //     console.log(`✅ Initial sync complete (${result.count || 0} msgs)`);
+      //     await fetchMessages(data.email);
+      //   } else {
+      //     console.error("❌ Initial sync failed:", result);
+      //   }
+      // } catch (err) {
+      //   console.error("🚨 Sync error:", err);
+      // }
+
+      // 🆕 Immediately trigger sync when user loads
       try {
-        const res = await fetch("/api/gmail/list", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: data.accessToken,
-            userEmail: data.email,
-          }),
-        });
-        const result = await res.json();
-        if (res.ok) {
-          console.log(`✅ Initial sync complete (${result.count || 0} msgs)`);
-          await fetchMessages(data.email);
+        if (window.location.pathname.startsWith("/admin/inbox/")) {
+          // console.log("📡 Sending userId to /api/admin/messages:", userId);
+          // 🧠 Admin viewing user’s inbox — use secure server route
+          const res = await fetch("/api/admin/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+          const result = await res.json();
+          if (res.ok) {
+            console.log(`✅ Admin sync complete (${result.messages?.length || 0} msgs)`);
+            setMessages(result.messages || []);
+          } else {
+            console.error("❌ Admin sync failed:", result);
+          }
         } else {
-          console.error("❌ Initial sync failed:", result);
+          // 🧠 Regular user viewing their own inbox
+          const res = await fetch("/api/gmail/list", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              accessToken: data.accessToken,
+              userEmail: data.email,
+            }),
+          });
+          const result = await res.json();
+          if (res.ok) {
+            console.log(`✅ Initial sync complete (${result.count || 0} msgs)`);
+            await fetchMessages(data.email);
+          } else {
+            console.error("❌ Initial sync failed:", result);
+          }
         }
       } catch (err) {
         console.error("🚨 Sync error:", err);
       }
+
 
       setLoading(false);
     };
@@ -94,26 +134,53 @@ export default function GmailInbox() {
   }, [userId]);
 
   // ✅ 2. Fetch messages from Supabase
-  const fetchMessages = async (email) => {
-    const targetEmail = email || user?.email;
-    if (!targetEmail) return;
+  // const fetchMessages = async (email) => {
+  //   const targetEmail = email || user?.email;
+  //   if (!targetEmail) return;
+  //   setLoading(true);
+
+  //   const { data, error } = await supabase
+  //     .from("gmail_messages")
+  //     .select("*")
+  //     .eq("user_email", targetEmail.toLowerCase().trim())
+  //     .order("created_at", { ascending: false })
+  //     .limit(200);
+
+  //   if (error) {
+  //     console.error("Error fetching messages:", error);
+  //     setError("Failed to load messages");
+  //   } else {
+  //     setMessages(data || []);
+  //   }
+  //   setLoading(false);
+  // };
+
+  // ✅ 2. Fetch messages securely through admin API
+  const fetchMessages = async () => {
+    if (!userId) return;
     setLoading(true);
+    try {
+      const res = await fetch("/api/admin/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const result = await res.json();
 
-    const { data, error } = await supabase
-      .from("gmail_messages")
-      .select("*")
-      .eq("user_email", targetEmail.toLowerCase().trim())
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    if (error) {
-      console.error("Error fetching messages:", error);
+      if (result.success) {
+        setMessages(result.messages);
+        console.log(`✅ Loaded ${result.messages.length} messages for admin view`);
+      } else {
+        console.error("❌ Admin fetch failed:", result.error);
+        setError("Failed to load messages");
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
       setError("Failed to load messages");
-    } else {
-      setMessages(data || []);
     }
     setLoading(false);
   };
+
 
   // ✅ 3. Manual sync by label
   const syncGmailMessages = async (labelIds = null) => {

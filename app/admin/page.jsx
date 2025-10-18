@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                           />
                         </svg>
                       </span>
-                      <button
+                      {/* <button
                         onClick={async (e) => {
                           e.stopPropagation();
                           if (
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
                               .delete()
                               .eq("id", user.id);
                             setUsers((prev) =>
-                              prev.filter((u) => u.id !== user.id)
+                              prev.filter((u) => u.id !== user.id) 
                             );
                           }
                         }}
@@ -227,7 +227,35 @@ export default function AdminDashboard() {
                         style={{ minWidth: 90 }}
                       >
                         Delete
+                      </button> */}
+
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const confirmed = confirm(`Are you sure you want to delete ${user.email}?`);
+                          if (!confirmed) return;
+
+                          // 🔹 Attempt deletion and capture result
+                          const { error } = await supabase
+                            .from("gmail_users")
+                            .delete()
+                            .eq("id", user.id);
+
+                          if (error) {
+                            console.error("Error deleting user:", error);
+                            alert("Failed to delete user. Check your Supabase permissions.");
+                            return;
+                          }
+
+                          // 🔹 Only update UI after successful delete
+                          setUsers((prev) => prev.filter((u) => u.id !== user.id));
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition w-full sm:w-auto"
+                        style={{ minWidth: 90 }}
+                      >
+                        Delete
                       </button>
+
                     </div>
                   </li>
                 ))
