@@ -3,7 +3,7 @@
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import {SessionProvider} from "next-auth/react"
-import "../styles/globals.css"; // <- ensure exact path and case
+import "./globals.css"; // <- ensure exact path and case
 
 export default function RootLayout({
   children,

@@ -1,15 +1,17 @@
+// tailwind.config.js
 module.exports = {
   content: [
-    "./app/**/*.{js,ts,jsx,tsx}",
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./styles/**/*.{css}",
   ],
   safelist: [
-    // arbitrary hex/bg/text classes you use dynamically
-    { pattern: /^(bg|text|from|to)-\[#?[0-9a-fA-F]{3,6}\]$/ },
-    { pattern: /^bg-gradient-to-(r|l|t|b)$/ },
+    { pattern: /from-\[#.*\]|via-\[#.*\]|to-\[#.*\]/ },
   ],
-  theme: { extend: {} },
+  theme: {
+    extend: {},
+  },
   plugins: [],
-}
+};
