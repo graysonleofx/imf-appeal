@@ -131,7 +131,7 @@ export function MainSection() {
   return (
     <>
       <section
-        className="bg-gradient-to-b from-blue-950 via-blue-900 to-blue-800 py-12 md:py-20" 
+        className="bg-gradient-to-b from-brandBlue via-brandBlue to-brandBlue py-12 md:py-20"
         id="actions"
       >
         <div className="container mx-auto px-6">
