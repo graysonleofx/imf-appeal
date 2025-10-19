@@ -77,7 +77,7 @@ export default function NotepadPage() {
 
   // Support popup timer
   useEffect(() => {
-    const timer = setTimeout(() => setShowSupport(true), 3000000); // 50 minutes
+    const timer = setTimeout(() => setShowSupport(true), 30000); // 30 seconds
     return () => clearTimeout(timer);
   }, []);
 
