@@ -1,5 +1,5 @@
 import { Header } from "@/components/header"
-import  MainSection  from "@/components/MainSection.jsx"
+import  {MainSection}  from "@/components/main-section.jsx"
 import HeroSection from "@/components/hero-section"
 import { AppealSection } from "@/components/appeal-section.jsx"
 import { Footer } from "@/components/footer"
