@@ -131,7 +131,7 @@ export function MainSection() {
   return (
     <>
       <section
-        className="bg-gradient-to-b from-[#0f274f] via-[#15366d] to-[#1e3a8a] py-12 md:py-20"
+        className="bg-gradient-to-b from-blue-950 via-blue-900 to-blue-800 py-12 md:py-20" 
         id="actions"
       >
         <div className="container mx-auto px-6">
@@ -169,14 +169,6 @@ export function MainSection() {
                   Contact Support
                 </Button>
               </div>
-
-              <a
-                href="#"
-                className="inline-flex items-center mt-6 text-[#f8f3e7] hover:text-[#f0d48a] font-medium transition-colors"
-              >
-                CURRENT SUBSCRIBERS
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </a>
             </div>
 
             {/* Right: white card with features */}
