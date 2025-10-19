@@ -6,10 +6,10 @@ import { Footer } from "@/components/footer"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-none text-foreground flex flex-col justify-between">
       <Header />
       <main>
-        <HeroSection />
+        <HeroSection /> 
         <MainSection />
         <AppealSection />
       </main>
