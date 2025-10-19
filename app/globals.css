@@ -1,11 +1,16 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+/* @import "tailwindcss"; */
+/* @import "tw-animate-css"; */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* Updated color scheme to match IMF website */
-  --background: ffffff; /* Light gray background */
+  --background: #ffffff; /* Light gray background */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0); /* Pure white for content cards */
   --card-foreground: oklch(0.145 0 0);
