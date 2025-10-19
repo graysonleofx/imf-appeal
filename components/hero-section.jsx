@@ -45,7 +45,7 @@ export default function HeroSection() {
               <Button
                 variant="outline"
                 onClick={() => setIsContactFormOpen(true)}
-                className="inline-block border border-white/30 text-white px-5 py-2 rounded-md h-12 flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+                className="inline-block border border-white/30 bg-transparent px-5 py-2 rounded-md h-12 flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
               >
                 Contact Us
               </Button>

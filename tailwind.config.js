@@ -25,6 +25,18 @@ module.exports = {
         brandBlue: "#1e3a8a",
         brandGold: "#f0d48a",
       },
+      screens: {
+        'sm': '480px',
+        'md': '768px',
+        'lg': '992px',
+        'xl': '1200px',
+        '2xl': '1400px',
+        '3xl': '1600px',
+        '4xl': '1800px',  
+      },
+      backgroundImage: {
+        'hero-pattern': "url('/imfc-am2025.jpg')",
+      },
     },
   },
 
