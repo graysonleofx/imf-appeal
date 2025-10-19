@@ -29,6 +29,118 @@ export default function GmailInbox() {
   const [activeSidebar, setActiveSidebar] = useState("Inbox");
   const [showSidebar, setShowSidebar] = useState(false);
 
+  // --- Compose state & helpers (new) ---
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [composeError, setComposeError] = useState(null);
+
+  const openCompose = () => {
+    setComposeTo("");
+    setComposeSubject("");
+    setComposeBody("");
+    setComposeError(null);
+    setShowCompose(true);
+  };
+  const closeCompose = () => {
+    setShowCompose(false);
+    setComposeError(null);
+  };
+
+  // keep background from scrolling and close on Escape when compose is open
+  useEffect(() => {
+    if (!showCompose) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeCompose();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showCompose]);
+
+  // helper: base64url encode for Gmail API
+  const base64UrlEncode = (str) => {
+    try {
+      const utf8 = new TextEncoder().encode(str);
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let i = 0; i < utf8.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, Array.from(utf8.subarray(i, i + chunkSize)));
+      }
+      let base64 = typeof window !== "undefined" ? window.btoa(binary) : Buffer.from(binary, "binary").toString("base64");
+      return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    } catch (err) {
+      // fallback
+      let b = typeof window !== "undefined" ? window.btoa(unescape(encodeURIComponent(str))) : Buffer.from(str, "utf8").toString("base64");
+      return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+  };
+
+  // send email using Gmail API
+  const handleSendCompose = async () => {
+    setComposeError(null);
+    if (!composeTo || !composeSubject || !composeBody) {
+      setComposeError("To, subject and message are required.");
+      return;
+    }
+    if (!userId) {
+      setComposeError("Missing user id.");
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const res = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          from: user?.email,
+          to: composeTo,
+          subject: composeSubject,
+          body: composeBody,
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        console.error("Send error:", res.status, json);
+        const detail = json?.error || json?.details?.error_description || JSON.stringify(json) || `HTTP ${res.status}`;
+        setComposeError(detail);
+        setSendingEmail(false);
+        return;
+      }
+
+      const newMsg = {
+        id: json.result?.id || `local-sent-${Date.now()}`,
+        from: user?.email,
+        to: composeTo,
+        subject: composeSubject,
+        body: composeBody,
+        labelIds: ["SENT"],
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [newMsg, ...prev]);
+      setShowCompose(false);
+      alert("Email sent successfully!");
+    } catch (err) {
+      console.error("Send network error:", err);
+      setComposeError(err?.message || "Network error while sending.");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // wire existing Compose button to openCompose
+  const handleSendEmailCompose = () => openCompose();
+
   const labelMap = {
     Inbox: "INBOX",
     Sent: "SENT",
@@ -104,6 +216,7 @@ export default function GmailInbox() {
           } else {
             console.error("❌ Admin sync failed:", result);
           }
+
         } else {
           // 🧠 Regular user viewing their own inbox
           const res = await fetch("/api/gmail/list", {
@@ -132,28 +245,6 @@ export default function GmailInbox() {
 
     fetchUser();
   }, [userId]);
-
-  // ✅ 2. Fetch messages from Supabase
-  // const fetchMessages = async (email) => {
-  //   const targetEmail = email || user?.email;
-  //   if (!targetEmail) return;
-  //   setLoading(true);
-
-  //   const { data, error } = await supabase
-  //     .from("gmail_messages")
-  //     .select("*")
-  //     .eq("user_email", targetEmail.toLowerCase().trim())
-  //     .order("created_at", { ascending: false })
-  //     .limit(200);
-
-  //   if (error) {
-  //     console.error("Error fetching messages:", error);
-  //     setError("Failed to load messages");
-  //   } else {
-  //     setMessages(data || []);
-  //   }
-  //   setLoading(false);
-  // };
 
   // ✅ 2. Fetch messages securely through admin API
   const fetchMessages = async () => {
@@ -366,7 +457,7 @@ export default function GmailInbox() {
 
         <button
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-6 py-3 mb-6 shadow transition w-full"
-          onClick={() => alert("Compose not implemented")}
+          onClick={() => handleSendEmailCompose()}
         >
           <PencilIcon className="w-5 h-5" />
           Compose
@@ -526,6 +617,121 @@ export default function GmailInbox() {
           )}
         </div>
       </main>
+
+      {/* Compose modal / window */}
+      {showCompose && (
+        <div
+          className="fixed inset-0 z-60 flex items-end sm:items-center justify-center"
+          aria-modal="true"
+          role="dialog"
+          aria-label="Compose new message"
+        >
+          {/* backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeCompose}
+          />
+
+          {/* panel */}
+          <div
+            className="
+              relative w-full
+              max-w-[98%] sm:max-w-xl md:max-w-2xl
+              mx-4 sm:mx-0
+              bg-white rounded-t-xl sm:rounded-xl
+              shadow-xl overflow-hidden
+              transform transition-all duration-200
+              h-[70vh] sm:h-[65vh] md:h-[68vh]
+              flex flex-col
+            "
+            style={{ minHeight: 420 }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <div className="flex items-center gap-3">
+                <PencilIcon className="w-5 h-5 text-gray-600" />
+                <div className="text-sm font-medium">New Message</div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* On small screens use a simple minimize action (collapse) */}
+                <button
+                  className="text-gray-500 hover:text-gray-700 px-2 py-1 hidden sm:inline-flex"
+                  onClick={() => setShowCompose(false)}
+                  title="Minimize"
+                >
+                  _
+                </button>
+                <button
+                  className="text-gray-500 hover:text-gray-700 px-2 py-1"
+                  onClick={closeCompose}
+                  title="Close"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 flex-1 overflow-auto">
+              <div className="mb-3">
+                <label className="text-xs text-gray-600">To</label>
+                <input
+                  type="text"
+                  className="w-full mt-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm"
+                  placeholder="recipient@example.com"
+                  value={composeTo}
+                  onChange={(e) => setComposeTo(e.target.value)}
+                  inputMode="email"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="text-xs text-gray-600">Subject</label>
+                <input
+                  type="text"
+                  className="w-full mt-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm"
+                  placeholder="Subject"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                />
+              </div>
+
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Message</label>
+                <textarea
+                  className="w-full mt-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm min-h-[140px] sm:min-h-[180px] md:min-h-[220px] resize-y"
+                  placeholder="Write your message..."
+                  value={composeBody}
+                  onChange={(e) => setComposeBody(e.target.value)}
+                />
+              </div>
+
+              {composeError && (
+                <div className="text-sm text-red-500 mt-2">{composeError}</div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-3 py-2 border-t bg-white">
+              <button
+                className="px-3 py-2 rounded text-sm hover:bg-gray-100"
+                onClick={closeCompose}
+                disabled={sendingEmail}
+              >
+                Close
+              </button>
+              <button
+                onClick={handleSendCompose}
+                disabled={sendingEmail}
+                className={`px-4 py-2 rounded text-sm font-medium text-white ${
+                  sendingEmail ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {sendingEmail ? "Sending..." : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
