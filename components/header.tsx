@@ -130,9 +130,9 @@ export function Header() {
             </button>
 
             {/* Mobile Menu Title */}
-            <div className="md:hidden flex-1 text-center">
+            {/* <div className="md:hidden flex-1 text-center">
               <span className="text-sm font-medium text-foreground">MENU</span>
-            </div>
+            </div> */}
           </div>
 
           {/* Mobile Navigation Menu */}
