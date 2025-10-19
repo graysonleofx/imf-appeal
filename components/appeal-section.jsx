@@ -1,120 +1,167 @@
 "use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Send } from "lucide-react"
-import { useState } from "react"
+import { CheckCircle2, Loader2 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export function AppealSection() {
   const [form, setForm] = useState({ name: "", email: "", appeal: "" })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  const handleChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }))
+  const handleChange = (key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch("/api/appeal", {
+      const res = await fetch("/api/appeal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
-      setDone(true)
-      setForm({ name: "", email: "", appeal: "" })
+      if (res.ok) {
+        setDone(true)
+        setForm({ name: "", email: "", appeal: "" })
+      }
     } catch (err) {
-      console.error(err)
+      console.error("Error submitting appeal:", err)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <section className="py-10 md:py-20 bg-gradient-to-b from-gray-50 to-white">
+    <section className="py-16 md:py-24 bg-gradient-to-b from-slate-50 via-white to-white relative overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
-          <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
-            <CardHeader className="text-center pb-6 md:pb-8 bg-gradient-to-r from-[#4a90e2] to-[#357abd] text-white px-4 md:px-6">
-              <CardTitle className="text-2xl md:text-3xl font-light">Submit an Appeal</CardTitle>
-              <p className="text-blue-100 text-base md:text-lg text-pretty mt-3 md:mt-4">
-                If you believe there has been an error with your account, please submit an appeal below and our team
-                will review your case within 24-48 hours.
+          <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden">
+            {/* Header */}
+            <CardHeader className="text-center bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white px-6 py-10">
+              <CardTitle className="text-3xl md:text-4xl font-semibold tracking-tight">
+                Submit an Appeal
+              </CardTitle>
+              <p className="mt-3 md:mt-4 text-blue-100 text-base md:text-lg max-w-2xl mx-auto">
+                If you believe there’s been an error with your account or decision, please submit your appeal below. Our
+                support team reviews every case within <strong>24–48 hours</strong>.
               </p>
             </CardHeader>
-            <CardContent className="p-6 md:p-10 space-y-6 md:space-y-8">
-              {done ? (
-                <div className="p-4 bg-green-50 rounded-md text-green-700">
-                  Thank you — we received your appeal.
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div className="space-y-2 md:space-y-3">
-                      <Label htmlFor="fullName" className="text-sm md:text-base font-medium text-gray-700">
-                        Full Name
+
+            {/* Content */}
+            <CardContent className="p-8 md:p-12 bg-white">
+              <AnimatePresence mode="wait">
+                {done ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center text-center p-6 bg-green-50 rounded-xl border border-green-100"
+                  >
+                    <CheckCircle2 className="h-10 w-10 text-green-600 mb-3" />
+                    <p className="text-green-700 font-medium text-lg">Thank you! Your appeal has been received.</p>
+                    <p className="text-green-600 text-sm mt-1">
+                      You’ll receive an email update once our team has reviewed it.
+                    </p>
+                    <Button
+                      className="mt-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-[1.03]"
+                      onClick={() => setDone(false)}
+                    >
+                      Submit Another Appeal
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={handleSubmit}
+                    className="space-y-6"
+                  >
+                    {/* Full Name + Email */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="fullName" className="font-medium text-gray-700">
+                          Full Name
+                        </Label>
+                        <Input
+                          id="fullName"
+                          placeholder="Enter your full name"
+                          value={form.name}
+                          onChange={handleChange("name")}
+                          required
+                          className="h-12 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-0"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="email" className="font-medium text-gray-700">
+                          Email Address
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={form.email}
+                          onChange={handleChange("email")}
+                          required
+                          className="h-12 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Appeal Message */}
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="message" className="font-medium text-gray-700">
+                        Appeal Message
                       </Label>
-                      <Input
-                        id="fullName"
-                        placeholder="Enter your full name"
-                        className="bg-white border-2 border-gray-200 focus:border-[#4a90e2] rounded-lg h-10 md:h-12 text-sm md:text-base transition-colors"
+                      <Textarea
+                        id="message"
+                        rows={6}
+                        placeholder="Describe your situation and why an appeal is warranted..."
+                        value={form.appeal}
+                        onChange={handleChange("appeal")}
                         required
-                        value={form.name}
-                        onChange={handleChange("name")}
+                        className="rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-0 resize-none"
                       />
                     </div>
-                    <div className="space-y-2 md:space-y-3">
-                      <Label htmlFor="email" className="text-sm md:text-base font-medium text-gray-700">
-                        Email Address
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        className="bg-white border-2 border-gray-200 focus:border-[#4a90e2] rounded-lg h-10 md:h-12 text-sm md:text-base transition-colors"
-                        required
-                        value={form.email}
-                        onChange={handleChange("email")}
-                      />
+
+                    {/* Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:scale-[1.03] transition-all rounded-xl py-3 text-lg font-medium text-white shadow-md"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" /> Sending...
+                          </>
+                        ) : (
+                          "Submit Appeal"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setForm({ name: "", email: "", appeal: "" })}
+                        variant="outline"
+                        className="border-gray-300 rounded-xl py-3 text-gray-700 hover:bg-gray-50"
+                      >
+                        Reset
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2 md:space-y-3">
-                    <Label htmlFor="message" className="text-sm md:text-base font-medium text-gray-700">
-                      Appeal Message
-                    </Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Please describe your situation and why you believe an appeal is warranted. Include any relevant details that might help us understand your case..."
-                      rows={6}
-                      className="bg-white border-2 border-gray-200 focus:border-[#4a90e2] rounded-lg text-sm md:text-base resize-none transition-colors"
-                      required
-                      value={form.appeal}
-                      onChange={handleChange("appeal")}
-                    />
-                  </div>
-
-                  <div className="flex items-center flex-col gap-3">
-                    <Button
-                      className="w-full bg-gradient-to-r from-[#4a90e2] to-[#357abd] hover:from-[#357abd] hover:to-[#2c5aa0] text-white py-3 md:py-4 text-base md:text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-                      size="lg"
-                      type="submit"
-                      disabled={loading}
-                    >
-                      {loading ? "Sending..." : "Submit Appeal"}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setForm({ name: "", email: "", appeal: "" })}
-                      className="px-4 py-2 border rounded-md"
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </form>
-              )}
+                  </motion.form>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
         </div>

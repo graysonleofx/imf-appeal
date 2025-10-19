@@ -9,6 +9,11 @@ module.exports = {
   ],
   safelist: [
     { pattern: /from-\[#.*\]|via-\[#.*\]|to-\[#.*\]/ },
+    { pattern: /bg-gradient-to-(t|b|l|r|tl|tr|bl|br)/ },
+    { pattern: /bg-\[#.*\]/ },
+    { pattern: /text-\[#.*\]/ },
+    { pattern: /border-\[#.*\]/ },
+    { pattern: /shadow-\[#.*\]/ },
   ],
   theme: {
     extend: {},
